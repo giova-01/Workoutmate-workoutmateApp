@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/usecases/get_current_user_usecase.dart';
@@ -5,7 +6,6 @@ import '../domain/usecases/login_usecase.dart';
 import '../domain/usecases/logout_usecase.dart';
 import '../domain/usecases/register_usecase.dart';
 import 'auth_state.dart';
-
 
 class AuthNotifier extends StateNotifier<AuthState> {
   final LoginUseCase _loginUseCase;
@@ -18,11 +18,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required RegisterUseCase registerUseCase,
     required LogoutUseCase logoutUseCase,
     required GetCurrentUserUseCase getCurrentUserUseCase,
-  })  : _loginUseCase = loginUseCase,
-        _registerUseCase = registerUseCase,
-        _logoutUseCase = logoutUseCase,
-        _getCurrentUserUseCase = getCurrentUserUseCase,
-        super(const AuthInitial());
+  }) : _loginUseCase = loginUseCase,
+       _registerUseCase = registerUseCase,
+       _logoutUseCase = logoutUseCase,
+       _getCurrentUserUseCase = getCurrentUserUseCase,
+       super(const AuthInitial());
 
   Future<void> checkAuthStatus() async {
     state = const AuthLoading();
@@ -30,8 +30,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final result = await _getCurrentUserUseCase();
 
     result.fold(
-          (failure) => state = const AuthUnauthenticated(),
-          (user) => state = AuthAuthenticated(user),
+      (failure) {
+        debugPrint('[AuthNotifier] Failure recibido, usuario no autenticado: ${failure.message}');
+        state = const AuthUnauthenticated();
+      },
+      (user) {
+        debugPrint('[AuthNotifier] Usuario recibido, usuario autenticado: ${user.email}');
+        state = AuthAuthenticated(user);
+      },
     );
   }
 
@@ -41,8 +47,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final result = await _loginUseCase(email: email, password: password);
 
     result.fold(
-          (failure) => state = AuthError(failure.message),
-          (user) => state = AuthAuthenticated(user),
+      (failure) {
+        debugPrint('[AuthNotifier] Login fallido: ${failure.message}');
+        state = AuthError(failure.message);
+      },
+      (user) {
+        debugPrint('[AuthNotifier] Login exitoso: ${user.email}');
+        state = AuthAuthenticated(user);
+      },
     );
   }
 
@@ -62,8 +74,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
     );
 
     result.fold(
-          (failure) => state = AuthError(failure.message),
-          (user) => state = AuthAuthenticated(user),
+      (failure) {
+        debugPrint('[AuthNotifier] Register fallido: ${failure.message}');
+        state = AuthError(failure.message);
+      },
+      (user) {
+        debugPrint('[AuthNotifier] Register exitoso: ${user.email}');
+        state = AuthAuthenticated(user);
+      },
     );
   }
 

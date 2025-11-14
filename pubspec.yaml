@@ -35,7 +35,6 @@ dependencies:
 
   # QR Code
   qr_flutter: ^4.1.0
-  qr_code_scanner: ^1.0.1
 
   # UI
   flutter_svg: ^2.0.10+1
@@ -55,3 +54,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/

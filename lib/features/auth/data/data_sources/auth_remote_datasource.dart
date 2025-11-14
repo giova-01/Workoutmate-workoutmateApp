@@ -10,7 +10,6 @@ abstract class AuthRemoteDataSource {
     required String email,
     required String password,
     required String firstName,
-    required String lastName,
   });
   Future<void> logout();
   Future<UserModel> getCurrentUser(String userId);
@@ -19,8 +18,6 @@ abstract class AuthRemoteDataSource {
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final Dio dio;
   AuthRemoteDataSourceImpl(this.dio);
-  static const source = '[AuthRemoteDataSource]';
-
 
   ///========================= Login ========================= ///
   @override
@@ -38,24 +35,23 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       if (response.statusCode == 200) {
         return UserModel.fromJson(response.data['user']);
       }
-      throw const ServerException('$source - Error en el servidor');
+      throw const ServerException('Error en el servidor');
     } on DioException catch (e) {
       //Manejo de errores
       final status = e.response?.statusCode;
       if (status == 401) {
-        throw const ServerException('$source - Credenciales inválidas');
+        throw const ServerException('Credenciales inválidas');
       }
       if (status == 403) {
-        throw const ServerException('$source - Master Key inválida');
+        throw const ServerException('Master Key inválida - La app no es original!');
       }
       if (e.response != null) {
-        final message = e.response?.data['message'] ??
-            '$source - Error desconocido';
+        final message = e.response?.data['message'] ?? 'Error desconocido';
         throw ServerException(message);
       }
-      throw const NetworkException('$source - Error de conexión');
+      throw const NetworkException('Error de conexión');
     } catch (e) {
-      throw ServerException('$source - Error inesperado: $e');
+      throw ServerException('Error inesperado: $e');
     }
   }
 
@@ -65,7 +61,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String email,
     required String password,
     required String firstName,
-    required String lastName,
   }) async {
     try {
       final response = await dio.post(
@@ -74,7 +69,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           'email': email,
           'password': password,
           'first_name': firstName,
-          'last_name': lastName,
         },
       );
 
@@ -82,22 +76,21 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         return UserModel.fromJson(response.data['user']);
       }
 
-      throw const ServerException('$source - Error en el servidor');
+      throw const ServerException('Error en el servidor');
     } on DioException catch (e) {
       final status = e.response?.statusCode;
 
       if (status == 403) {
-        throw const ServerException('$source - Master Key inválida');
+        throw const ServerException('Master Key inválida - La app no es original!');
       }
       if (e.response != null) {
-        final message = e.response?.data['message'] ??
-            '$source - Error desconocido';
+        final message = e.response?.data['message'] ?? 'Error desconocido';
         throw ServerException(message);
       }
 
-      throw const NetworkException('$source - Error de conexión');
+      throw const NetworkException('Error de conexión');
     } catch (e) {
-      throw ServerException('$source - Error inesperado: $e');
+      throw ServerException('Error inesperado: $e');
     }
   }
 
@@ -107,9 +100,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       await dio.post(ApiConstants.logout);
     } on DioException catch (e) {
-      debugPrint('$source - Error en logout: ${e.message}');
+      debugPrint('Error en logout: ${e.message}');
     } catch (e) {
-      debugPrint('$source - Error inesperado en logout: $e');
+      debugPrint('Error inesperado en logout: $e');
     }
   }
 
@@ -123,20 +116,20 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         return UserModel.fromJson(response.data['user']);
       }
 
-      throw const ServerException('$source - Error al obtener usuario');
+      throw const ServerException('Error al obtener usuario');
     } on DioException catch (e) {
       final status = e.response?.statusCode;
 
       if (status == 403) {
-        throw const CacheException('$source - Master Key inválida');
+        throw const CacheException('Master Key inválida - La app no es original!');
       }
       if (status == 404) {
-        throw const CacheException('$source - Usuario no encontrado');
+        throw const CacheException('Usuario no encontrado');
       }
 
-      throw const ServerException('$source - Error en el servidor');
+      throw const ServerException('Error en el servidor');
     } catch (e) {
-      throw ServerException('$source - Error inesperado: $e');
+      throw ServerException('Error inesperado: $e');
     }
   }
 }

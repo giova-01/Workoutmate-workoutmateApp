@@ -18,7 +18,6 @@ class RegisterUseCase {
       email: email,
       password: password,
       firstName: firstName,
-      lastName: lastName,
     );
   }
 }

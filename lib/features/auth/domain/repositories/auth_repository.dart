@@ -8,7 +8,6 @@ abstract class AuthRepository {
     required String email,
     required String password,
     required String firstName,
-    required String lastName,
   });
 
   Future<Either<Failure, User>> login({
