@@ -98,7 +98,7 @@ class WorkoutRemoteDataSourceImpl implements WorkoutRemoteDataSource {
   @override
   Future<List<WorkoutModel>> getUserWorkouts(String userId) async {
     try {
-      final response = await dio.get('${ApiConstants.baseUrl}/workouts/user/$userId');
+      final response = await dio.get('${ApiConstants.baseUrl}/workouts/list_by_user/$userId');
 
       if (response.statusCode == 200) {
         final workouts = (response.data['workouts'] as List)
@@ -111,9 +111,19 @@ class WorkoutRemoteDataSourceImpl implements WorkoutRemoteDataSource {
     } on DioException catch (e) {
       final status = e.response?.statusCode;
 
-      if (status == 403) {
-        throw const ServerException('Master Key inválida');
+      if (status == 404) {
+        // Si el backend envía un mensaje específico podemos usarlo
+        final message = e.response?.data?['message']?.toString().toLowerCase();
+
+        // Caso 1: usuario realmente no existe
+        if (message != null && message.contains('usuario no existe')) {
+          throw const ServerException('Usuario no encontrado');
+        }
+
+        // Caso 2: 404 porque NO tiene rutinas
+        return [];
       }
+
       if (status == 404) {
         throw const ServerException('Usuario no encontrado');
       }
