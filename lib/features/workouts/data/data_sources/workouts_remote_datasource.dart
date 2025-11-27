@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:workoutmate_app/features/workouts/data/models/exercise_model.dart';
 import '../models/workout_model.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/constants/api_constants.dart';
@@ -37,6 +38,13 @@ abstract class WorkoutRemoteDataSource {
   Future<Map<String, String>> generateShareLink({
     required String workoutId,
     required String userId,
+  });
+
+  /// Exercises
+  Future<List<ExerciseModel>> getPredefinedExercises({
+    String? muscleGroup,
+    String? difficulty,
+    String? equipment,
   });
 }
 
@@ -261,6 +269,49 @@ class WorkoutRemoteDataSourceImpl implements WorkoutRemoteDataSource {
       }
       if (status == 404) {
         throw const ServerException('Rutina no encontrada');
+      }
+
+      throw const NetworkException('Error de conexión');
+    } catch (e) {
+      throw ServerException('Error inesperado: $e');
+    }
+  }
+
+  ///Exercises
+  @override
+  Future<List<ExerciseModel>> getPredefinedExercises({
+    String? muscleGroup,
+    String? difficulty,
+    String? equipment,
+  }) async {
+    try {
+      final queryParams = <String, dynamic>{};
+      if (muscleGroup != null) queryParams['muscle_group'] = muscleGroup;
+      if (difficulty != null) queryParams['difficulty'] = difficulty;
+      if (equipment != null) queryParams['equipment'] = equipment;
+
+      final response = await dio.get(
+        '${ApiConstants.baseUrl}/exercises/list_predefined',
+        queryParameters: queryParams,
+      );
+
+      if (response.statusCode == 200) {
+        final exercises = (response.data['data']['exercises'] as List)
+            .map((exercise) => ExerciseModel.fromJson(exercise))
+            .toList();
+        return exercises;
+      }
+
+      throw const ServerException('Error al obtener ejercicios');
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+
+      if (status == 403) {
+        throw const ServerException('Master Key inválida');
+      }
+      if (e.response != null) {
+        final message = e.response?.data['message'] ?? 'Error desconocido';
+        throw ServerException(message);
       }
 
       throw const NetworkException('Error de conexión');

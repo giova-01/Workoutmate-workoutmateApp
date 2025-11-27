@@ -3,23 +3,31 @@ import '../../domain/entities/exercise.dart';
 
 class ExerciseModel {
   final String id;
-  final String workoutId;
+  final String? workoutId;
   final String name;
-  final int sets;
-  final int repetitions;
-  final int restTime;
-  final String? notes;
-  final int orderIndex;
+  final String? category;
+  final String? muscleGroup;
+  final String? description;
+  final String? difficulty;
+  final String? equipment;
+  final int? sets;
+  final int? repetitions;
+  final int? restTime;
+  final int? orderIndex;
 
   ExerciseModel({
     required this.id,
     required this.workoutId,
     required this.name,
+    required this.category,
+    required this.muscleGroup,
+    required this.description,
+    required this.difficulty,
+    required this.equipment,
     required this.sets,
     required this.repetitions,
     required this.restTime,
-    this.notes,
-    required this.orderIndex,
+    required this.orderIndex
   });
 
   factory ExerciseModel.fromEntity(Exercise exercise) {
@@ -27,10 +35,14 @@ class ExerciseModel {
       id: exercise.id,
       workoutId: exercise.workoutId,
       name: exercise.name,
+      category: exercise.category,
+      muscleGroup: exercise.muscleGroup,
+      description: exercise.description,
+      difficulty: exercise.difficulty,
+      equipment: exercise.equipment,
       sets: exercise.sets,
       repetitions: exercise.repetitions,
       restTime: exercise.restTime,
-      notes: exercise.notes,
       orderIndex: exercise.orderIndex,
     );
   }
@@ -40,24 +52,32 @@ class ExerciseModel {
       id: id,
       workoutId: workoutId,
       name: name,
+      category: category,
+      muscleGroup: muscleGroup,
+      description: description,
+      difficulty: difficulty,
+      equipment: equipment,
       sets: sets,
       repetitions: repetitions,
       restTime: restTime,
-      notes: notes,
       orderIndex: orderIndex,
     );
   }
 
   factory ExerciseModel.fromJson(Map<String, dynamic> json) {
     return ExerciseModel(
-      id: json['id'] as String,
-      workoutId: json['workout_id'] as String? ?? '',
-      name: json['name'] as String,
-      sets: json['sets'] as int,
-      repetitions: json['repetitions'] as int,
-      restTime: json['rest_time'] as int,
-      notes: json['notes'] as String?,
-      orderIndex: json['order_index'] as int,
+      id: json['id'] as String? ?? '',
+      workoutId: json['workout_id'] as String?,
+      name: json['name'] as String? ?? '',
+      category: json['category'] as String?,
+      muscleGroup: json['muscle_group'] as String?,
+      description: json['description'] as String?,
+      difficulty: json['difficulty'] as String?,
+      equipment: json['equipment'] as String?,
+      sets: json['sets'] as int?,
+      repetitions: json['repetitions'] as int?,
+      restTime: json['rest_time'] as int?,
+      orderIndex: json['order_index'] as int?,
     );
   }
 
@@ -66,10 +86,14 @@ class ExerciseModel {
       'id': id,
       'workout_id': workoutId,
       'name': name,
+      'category': category,
+      'muscleGroup': muscleGroup,
+      'description': description,
+      'difficulty': difficulty,
+      'equipment': equipment,
       'sets': sets,
       'repetitions': repetitions,
       'rest_time': restTime,
-      'notes': notes,
       'order_index': orderIndex,
     };
   }
@@ -84,20 +108,28 @@ class ExerciseModel {
     String? id,
     String? workoutId,
     String? name,
+    String? category,
+    String? muscleGroup,
+    String? description,
+    String? difficulty,
+    String? equipment,
     int? sets,
     int? repetitions,
     int? restTime,
-    String? notes,
     int? orderIndex,
   }) {
     return ExerciseModel(
       id: id ?? this.id,
       workoutId: workoutId ?? this.workoutId,
       name: name ?? this.name,
+      category: category ?? this.category,
+      muscleGroup: muscleGroup ?? this.muscleGroup,
+      description: description ?? this.description,
+      difficulty: difficulty ?? this.difficulty,
+      equipment:equipment ?? this.equipment,
       sets: sets ?? this.sets,
       repetitions: repetitions ?? this.repetitions,
       restTime: restTime ?? this.restTime,
-      notes: notes ?? this.notes,
       orderIndex: orderIndex ?? this.orderIndex,
     );
   }

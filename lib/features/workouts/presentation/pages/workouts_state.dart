@@ -1,3 +1,4 @@
+import '../../domain/entities/exercise.dart';
 import '../../domain/entities/workout.dart';
 
 abstract class WorkoutState {
@@ -61,4 +62,19 @@ class WorkoutShareLinkGenerated extends WorkoutState {
 
   @override
   int get hashCode => shareLink.hashCode ^ fullUrl.hashCode;
+}
+
+class PredefinedExercisesLoaded extends WorkoutState {
+  final List<Exercise> exercises;
+
+  const PredefinedExercisesLoaded(this.exercises);
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is PredefinedExercisesLoaded && other.exercises == exercises;
+  }
+
+  @override
+  int get hashCode => exercises.hashCode;
 }

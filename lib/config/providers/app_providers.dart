@@ -17,6 +17,7 @@ import '../../features/workouts/domain/repositories/workouts_repository.dart';
 import '../../features/workouts/domain/usecases/create_workout_usecase.dart';
 import '../../features/workouts/domain/usecases/delete_workout_usecase.dart';
 import '../../features/workouts/domain/usecases/generate_share_link_usecase.dart';
+import '../../features/workouts/domain/usecases/get_predefined_exercises_usecase.dart';
 import '../../features/workouts/domain/usecases/get_user_workouts_usecase.dart';
 import '../../features/workouts/domain/usecases/search_workout_usecase.dart';
 import '../../features/workouts/domain/usecases/update_workout_usecase.dart';
@@ -122,6 +123,10 @@ final generateShareLinkUseCaseProvider = Provider<GenerateShareLinkUseCase>((ref
   final repository = ref.watch(workoutRepositoryProvider);
   return GenerateShareLinkUseCase(repository);
 });
+final getPredefinedExercisesUseCaseProvider = Provider<GetPredefinedExercisesUseCase>((ref) {
+  final repository = ref.watch(workoutRepositoryProvider);
+  return GetPredefinedExercisesUseCase(repository);
+});
 
 // Workout Notifier Provider
 final workoutNotifierProvider = StateNotifierProvider<WorkoutNotifier, WorkoutState>((ref) {
@@ -132,5 +137,6 @@ final workoutNotifierProvider = StateNotifierProvider<WorkoutNotifier, WorkoutSt
     deleteWorkoutUseCase: ref.watch(deleteWorkoutUseCaseProvider),
     searchWorkoutsUseCase: ref.watch(searchWorkoutsUseCaseProvider),
     generateShareLinkUseCase: ref.watch(generateShareLinkUseCaseProvider),
+    getPredefinedExercisesUseCase: ref.watch(getPredefinedExercisesUseCaseProvider),
   );
 });

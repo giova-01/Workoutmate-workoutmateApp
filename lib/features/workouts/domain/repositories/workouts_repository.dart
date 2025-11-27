@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
+import '../entities/exercise.dart';
 import '../entities/workout.dart';
 
 abstract class WorkoutRepository {
@@ -36,5 +37,12 @@ abstract class WorkoutRepository {
   Future<Either<Failure, Map<String, String>>> generateShareLink({
     required String workoutId,
     required String userId,
+  });
+
+  ///Exercises
+  Future<Either<Failure, List<Exercise>>> getPredefinedExercises({
+    String? muscleGroup,
+    String? difficulty,
+    String? equipment,
   });
 }

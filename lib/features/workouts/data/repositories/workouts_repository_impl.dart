@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import '../../domain/entities/exercise.dart';
 import '../../domain/entities/workout.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/errors/exceptions.dart';
@@ -138,6 +139,31 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
         userId: userId,
       );
       return Right(result);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on NetworkException catch (e) {
+      return Left(NetworkFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure('[WorkoutRepository] - Error inesperado: $e'));
+    }
+  }
+
+  ///Exercises
+  @override
+  Future<Either<Failure, List<Exercise>>> getPredefinedExercises({
+    String? muscleGroup,
+    String? difficulty,
+    String? equipment,
+  }) async {
+    try {
+      final models = await remoteDataSource.getPredefinedExercises(
+        muscleGroup: muscleGroup,
+        difficulty: difficulty,
+        equipment: equipment,
+      );
+
+      final exercises = models.map((model) => model.toEntity()).toList();
+      return Right(exercises);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
     } on NetworkException catch (e) {
