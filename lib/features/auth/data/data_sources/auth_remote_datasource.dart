@@ -43,7 +43,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw const ServerException('Credenciales inválidas');
       }
       if (status == 403) {
-        throw const ServerException('Master Key inválida - La app no es original!');
+        throw const ServerException('Master Key inválida');
       }
       if (e.response != null) {
         final message = e.response?.data['message'] ?? 'Error desconocido';
@@ -81,7 +81,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final status = e.response?.statusCode;
 
       if (status == 403) {
-        throw const ServerException('Master Key inválida - La app no es original!');
+        throw const ServerException('Master Key inválida');
       }
       if (e.response != null) {
         final message = e.response?.data['message'] ?? 'Error desconocido';
@@ -121,7 +121,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final status = e.response?.statusCode;
 
       if (status == 403) {
-        throw const CacheException('Master Key inválida - La app no es original!');
+        throw const CacheException('Master Key inválida');
       }
       if (status == 404) {
         throw const CacheException('Usuario no encontrado');
