@@ -63,15 +63,55 @@ class WorkoutModel {
   }
 
   factory WorkoutModel.fromJson(Map<String, dynamic> json) {
+    List<ExerciseModel> exercises = [];
+
+    try {
+      if (json['exercises'] != null) {
+        if (json['exercises'] is String) {
+          // Si es un string, intentar parsearlo como JSON
+          final exercisesStr = json['exercises'] as String;
+          if (exercisesStr.isNotEmpty && exercisesStr != 'null') {
+            try {
+              final decoded = jsonDecode(exercisesStr);
+              if (decoded is List) {
+                for (var item in decoded) {
+                  try {
+                    exercises.add(ExerciseModel.fromJson(item as Map<String, dynamic>));
+                  } catch (e) {
+                    // Saltar ejercicios mal formados
+                    continue;
+                  }
+                }
+              }
+            } catch (e) {
+              // Si falla el parseo del JSON, dejar lista vacía
+              exercises = [];
+            }
+          }
+        } else if (json['exercises'] is List) {
+          // Si ya es una lista, procesarla directamente
+          final exercisesList = json['exercises'] as List;
+          for (var item in exercisesList) {
+            try {
+              exercises.add(ExerciseModel.fromJson(item as Map<String, dynamic>));
+            } catch (e) {
+              // Saltar ejercicios mal formados
+              continue;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // Cualquier error, dejar lista vacía
+      exercises = [];
+    }
+
     return WorkoutModel(
       id: json['id'] as String,
       userId: json['user_id'] as String,
       name: json['name'] as String,
       category: json['category'] as String,
-      exercises: (json['exercises'] as List?)
-          ?.map((e) => ExerciseModel.fromJson(e as Map<String, dynamic>))
-          .toList() ??
-          [],
+      exercises: exercises,
       isPublic: json['is_public'] == 1 || json['is_public'] == true,
       shareLink: json['share_link'] as String?,
       qrCodePath: json['qr_code_path'] as String?,

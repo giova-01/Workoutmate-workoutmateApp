@@ -66,18 +66,18 @@ class ExerciseModel {
 
   factory ExerciseModel.fromJson(Map<String, dynamic> json) {
     return ExerciseModel(
-      id: json['id'] as String? ?? '',
-      workoutId: json['workout_id'] as String?,
-      name: json['name'] as String? ?? '',
-      category: json['category'] as String?,
-      muscleGroup: json['muscle_group'] as String?,
-      description: json['description'] as String?,
-      difficulty: json['difficulty'] as String?,
-      equipment: json['equipment'] as String?,
-      sets: json['sets'] as int?,
-      repetitions: json['repetitions'] as int?,
-      restTime: json['rest_time'] as int?,
-      orderIndex: json['order_index'] as int?,
+      id: json['id']?.toString() ?? '',
+      workoutId: json['workout_id']?.toString(),
+      name: json['name']?.toString() ?? '',
+      category: json['category']?.toString(),
+      muscleGroup: json['muscle_group']?.toString(),
+      description: json['description']?.toString(),
+      difficulty: json['difficulty']?.toString(),
+      equipment: json['equipment']?.toString(),
+      sets: json['sets'] is int ? json['sets'] : (json['sets'] != null ? int.tryParse(json['sets'].toString()) : null),
+      repetitions: json['repetitions'] is int ? json['repetitions'] : (json['repetitions'] != null ? int.tryParse(json['repetitions'].toString()) : null),
+      restTime: json['rest_time'] is int ? json['rest_time'] : (json['rest_time'] != null ? int.tryParse(json['rest_time'].toString()) : null),
+      orderIndex: json['order_index'] is int ? json['order_index'] : (json['order_index'] != null ? int.tryParse(json['order_index'].toString()) : null),
     );
   }
 
@@ -126,7 +126,7 @@ class ExerciseModel {
       muscleGroup: muscleGroup ?? this.muscleGroup,
       description: description ?? this.description,
       difficulty: difficulty ?? this.difficulty,
-      equipment:equipment ?? this.equipment,
+      equipment: equipment ?? this.equipment,
       sets: sets ?? this.sets,
       repetitions: repetitions ?? this.repetitions,
       restTime: restTime ?? this.restTime,
