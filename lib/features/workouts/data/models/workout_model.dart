@@ -113,8 +113,8 @@ class WorkoutModel {
       category: json['category'] as String,
       exercises: exercises,
       isPublic: json['is_public'] == 1 || json['is_public'] == true,
-      shareLink: json['share_link'] as String?,
-      qrCodePath: json['qr_code_path'] as String?,
+      shareLink: json['share_link'],
+      qrCodePath: json['qr_code_path'],
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );

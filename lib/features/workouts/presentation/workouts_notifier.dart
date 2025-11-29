@@ -18,6 +18,7 @@ class WorkoutNotifier extends StateNotifier<WorkoutState> {
   final SearchWorkoutsUseCase _searchWorkoutsUseCase;
   final GenerateShareLinkUseCase _generateShareLinkUseCase;
   final GetPredefinedExercisesUseCase _getPredefinedExercisesUseCase;
+  WorkoutState? _previousWorkoutsState;
 
   WorkoutNotifier({
     required CreateWorkoutUseCase createWorkoutUseCase,
@@ -67,7 +68,6 @@ class WorkoutNotifier extends StateNotifier<WorkoutState> {
     result.fold(
           (failure) => state = WorkoutError(failure.message),
           (workout) async {
-        // Recargar la lista de workouts
         await loadUserWorkouts(userId);
       },
     );
@@ -95,7 +95,6 @@ class WorkoutNotifier extends StateNotifier<WorkoutState> {
     result.fold(
           (failure) => state = WorkoutError(failure.message),
           (workout) async {
-        // Recargar la lista de workouts
         await loadUserWorkouts(userId);
       },
     );
@@ -115,7 +114,6 @@ class WorkoutNotifier extends StateNotifier<WorkoutState> {
     result.fold(
           (failure) => state = WorkoutError(failure.message),
           (_) async {
-        // Recargar la lista de workouts
         await loadUserWorkouts(userId);
       },
     );
@@ -165,6 +163,11 @@ class WorkoutNotifier extends StateNotifier<WorkoutState> {
     String? difficulty,
     String? equipment,
   }) async {
+    // Saves actual state
+    if (state is WorkoutsLoaded || state is WorkoutInitial) {
+      _previousWorkoutsState = state;
+    }
+
     state = const WorkoutLoading();
 
     final result = await _getPredefinedExercisesUseCase(
@@ -177,5 +180,12 @@ class WorkoutNotifier extends StateNotifier<WorkoutState> {
           (failure) => state = WorkoutError(failure.message),
           (exercises) => state = PredefinedExercisesLoaded(exercises),
     );
+  }
+
+  void restorePreviousWorkoutsState() {
+    if (_previousWorkoutsState != null) {
+      state = _previousWorkoutsState!;
+      _previousWorkoutsState = null;
+    }
   }
 }

@@ -1,5 +1,5 @@
 class ApiConstants {
-  static const String baseUrl = 'http://192.168.0.16/workoutmate';
+  static const String baseUrl = 'http://192.168.0.25/workoutmate';
 
   //Auth endpoints
   static const String masterKey = 'workoutmate_masterkey_XD';

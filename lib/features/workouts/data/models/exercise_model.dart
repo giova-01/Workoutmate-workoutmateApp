@@ -17,17 +17,17 @@ class ExerciseModel {
 
   ExerciseModel({
     required this.id,
-    required this.workoutId,
+    this.workoutId,
     required this.name,
-    required this.category,
-    required this.muscleGroup,
-    required this.description,
-    required this.difficulty,
-    required this.equipment,
-    required this.sets,
-    required this.repetitions,
-    required this.restTime,
-    required this.orderIndex
+    this.category,
+    this.muscleGroup,
+    this.description,
+    this.difficulty,
+    this.equipment,
+    this.sets,
+    this.repetitions,
+    this.restTime,
+    this.orderIndex,
   });
 
   factory ExerciseModel.fromEntity(Exercise exercise) {
@@ -74,11 +74,18 @@ class ExerciseModel {
       description: json['description']?.toString(),
       difficulty: json['difficulty']?.toString(),
       equipment: json['equipment']?.toString(),
-      sets: json['sets'] is int ? json['sets'] : (json['sets'] != null ? int.tryParse(json['sets'].toString()) : null),
-      repetitions: json['repetitions'] is int ? json['repetitions'] : (json['repetitions'] != null ? int.tryParse(json['repetitions'].toString()) : null),
-      restTime: json['rest_time'] is int ? json['rest_time'] : (json['rest_time'] != null ? int.tryParse(json['rest_time'].toString()) : null),
-      orderIndex: json['order_index'] is int ? json['order_index'] : (json['order_index'] != null ? int.tryParse(json['order_index'].toString()) : null),
+      sets: _parseInt(json['sets']),
+      repetitions: _parseInt(json['repetitions']),
+      restTime: _parseInt(json['rest_time']),
+      orderIndex: _parseInt(json['order_index']),
     );
+  }
+
+  static int? _parseInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value);
+    return null;
   }
 
   Map<String, dynamic> toJson() {
@@ -87,7 +94,7 @@ class ExerciseModel {
       'workout_id': workoutId,
       'name': name,
       'category': category,
-      'muscleGroup': muscleGroup,
+      'muscle_group': muscleGroup,
       'description': description,
       'difficulty': difficulty,
       'equipment': equipment,
