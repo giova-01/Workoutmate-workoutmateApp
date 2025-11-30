@@ -99,59 +99,61 @@ class _CreateWorkoutDialogState extends ConsumerState<CreateWorkoutDialog> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) {
-          return AlertDialog(
-            constraints: BoxConstraints(
-                minWidth: MediaQuery.of(context).size.width * 0.8),
+          return Dialog(
+            backgroundColor: Colors.white,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(16),
             ),
-            titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-            contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-            actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            title: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.green[50],
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.fitness_center,
-                    size: 48,
-                    color: Colors.green[700],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Crear Rutina',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            content: Form(
-              key: _formKey,
-              child: SingleChildScrollView(
+            child: Container(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.9,
+              ),
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: _formKey,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 8),
+                    // Title
+                    const Text(
+                      'Crear rutina',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
                     // Workout name input
                     TextFormField(
                       controller: _nameController,
                       decoration: InputDecoration(
-                        labelText: 'Nombre de la rutina',
+                        labelText: 'Nombre',
+                        labelStyle: TextStyle(color: Colors.grey[700]),
                         hintText: 'Ej: Rutina de Fuerza',
-                        prefixIcon: const Icon(Icons.edit),
+                        hintStyle: TextStyle(color: Colors.grey[400]),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
                         ),
-                        filled: true,
-                        fillColor: Colors.grey[50],
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: Colors.black, width: 2),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: Colors.red),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -161,34 +163,36 @@ class _CreateWorkoutDialogState extends ConsumerState<CreateWorkoutDialog> {
                       },
                     ),
                     const SizedBox(height: 16),
+
                     // Category dropdown
                     DropdownButtonFormField<WorkoutCategory>(
-                      value: _selectedCategory,
+                      initialValue: _selectedCategory,
                       decoration: InputDecoration(
                         labelText: 'Categoría',
-                        prefixIcon: const Icon(Icons.category),
+                        labelStyle: TextStyle(color: Colors.grey[700]),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
                         ),
-                        filled: true,
-                        fillColor: Colors.grey[50],
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: Colors.black, width: 2),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                       ),
                       items: WorkoutCategory.values.map((category) {
                         return DropdownMenuItem(
                           value: category,
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 12,
-                                height: 12,
-                                decoration: BoxDecoration(
-                                  color: _getCategoryColor(category),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(_getCategoryName(category)),
-                            ],
+                          child: Text(
+                            _getCategoryName(category),
+                            style: const TextStyle(fontSize: 15),
                           ),
                         );
                       }).toList(),
@@ -199,86 +203,101 @@ class _CreateWorkoutDialogState extends ConsumerState<CreateWorkoutDialog> {
                       },
                     ),
                     const SizedBox(height: 16),
+
                     // Public workout switch
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.grey[50],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[300]!),
-                      ),
-                      child: SwitchListTile(
-                        title: const Text(
-                          'Rutina pública',
-                          style: TextStyle(fontWeight: FontWeight.w500),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Rutina pública',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Otros podrán ver esta rutina',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        subtitle: Text(
-                          'Otros usuarios podrán ver esta rutina',
-                          style:
-                          TextStyle(fontSize: 12, color: Colors.grey[600]),
+                        const SizedBox(width: 8),
+                        Switch(
+                          value: _isPublic,
+                          activeThumbColor: Colors.black,
+                          onChanged: (value) {
+                            setDialogState(() => _isPublic = value);
+                          },
                         ),
-                        value: _isPublic,
-                        activeColor: Colors.green,
-                        contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 12),
-                        onChanged: (value) {
-                          setDialogState(() => _isPublic = value);
-                        },
-                      ),
+                      ],
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
+
+                    // Action buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              side: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            onPressed: () => Navigator.pop(dialogContext),
+                            child: Text(
+                              'Cancelar',
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: Colors.grey[700],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              elevation: 0,
+                            ),
+                            onPressed: () {
+                              if (_formKey.currentState!.validate()) {
+                                Navigator.pop(dialogContext);
+                                _createWorkout();
+                              }
+                            },
+                            child: const Text(
+                              'Crear',
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
             ),
-            actions: [
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        side: BorderSide(color: Colors.grey[400]!),
-                      ),
-                      onPressed: () => Navigator.pop(dialogContext),
-                      child: const Text(
-                        'Cancelar',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green[600],
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        elevation: 0,
-                      ),
-                      onPressed: () {
-                        if (_formKey.currentState!.validate()) {
-                          Navigator.pop(dialogContext);
-                          _createWorkout();
-                        }
-                      },
-                      child: const Text(
-                        'Crear',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              )
-            ],
           );
         },
       ),
@@ -333,61 +352,44 @@ class _CreateWorkoutDialogState extends ConsumerState<CreateWorkoutDialog> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) {
-          return AlertDialog(
-            constraints: BoxConstraints(
-                minWidth: MediaQuery.of(context).size.width * 0.8),
+          return Dialog(
+            backgroundColor: Colors.white,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(16),
             ),
-            titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-            contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-            actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            title: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.settings,
-                    size: 48,
-                    color: Colors.blue[700],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  exerciseConfig.exercise.name,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Configura las series y repeticiones',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.normal,
-                  ),
-                ),
-              ],
-            ),
-            content: SingleChildScrollView(
+            child: Container(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.9,
+              ),
+              padding: const EdgeInsets.all(24),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Title
+                  Text(
+                    exerciseConfig.exercise.name,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: 8),
+                  Text(
+                    'Configura las series y repeticiones',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
                   // Sets counter
-                  _buildCounterRow(
+                  _buildMinimalCounterRow(
                     label: 'Series',
-                    icon: Icons.format_list_numbered,
                     value: exerciseConfig.sets,
                     onIncrement: () {
                       setDialogState(() {
@@ -401,14 +403,14 @@ class _CreateWorkoutDialogState extends ConsumerState<CreateWorkoutDialog> {
                     },
                   ),
                   const SizedBox(height: 16),
+
                   // Repetitions counter
-                  _buildCounterRow(
-                    label: 'Rep.',
-                    icon: Icons.repeat,
+                  _buildMinimalCounterRow(
+                    label: 'Repeticiones',
                     value: exerciseConfig.repetitions,
                     onIncrement: () {
                       setDialogState(() {
-                        if (exerciseConfig.repetitions < 100) {
+                        if (exerciseConfig.repetitions < 50) {
                           exerciseConfig.repetitions++;
                         }
                       });
@@ -422,165 +424,191 @@ class _CreateWorkoutDialogState extends ConsumerState<CreateWorkoutDialog> {
                     },
                   ),
                   const SizedBox(height: 16),
+
                   // Rest time input
                   TextField(
                     controller: restController,
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
                       labelText: 'Descanso (segundos)',
+                      labelStyle: TextStyle(color: Colors.grey[700]),
                       hintText: '60',
-                      prefixIcon: Icon(Icons.timer, color: Colors.blue[700]),
+                      hintStyle: TextStyle(color: Colors.grey[400]),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
                       ),
-                      filled: true,
-                      fillColor: Colors.grey[50],
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide:
-                        BorderSide(color: Colors.blue[700]!, width: 2),
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Colors.black, width: 2),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
+
+                  // Action buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            side: BorderSide(color: Colors.grey[300]!),
+                          ),
+                          onPressed: () => Navigator.pop(dialogContext),
+                          child: Text(
+                            'Cancelar',
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: Colors.grey[700],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            elevation: 0,
+                          ),
+                          onPressed: () {
+                            exerciseConfig.restTime =
+                                int.tryParse(restController.text) ?? 60;
+                            Navigator.pop(dialogContext);
+                            setState(() {});
+                          },
+                          child: const Text(
+                            'Guardar',
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
-            actions: [
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        side: BorderSide(color: Colors.grey[400]!),
-                      ),
-                      onPressed: () => Navigator.pop(dialogContext),
-                      child: const Text(
-                        'Cancelar',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue[700],
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        elevation: 0,
-                      ),
-                      onPressed: () {
-                        exerciseConfig.restTime =
-                            int.tryParse(restController.text) ?? 60;
-                        Navigator.pop(dialogContext);
-                        setState(() {});
-                      },
-                      child: const Text(
-                        'Guardar',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              )
-            ],
           );
         },
       ),
     );
   }
 
-  Widget _buildCounterRow({
+  Widget _buildMinimalCounterRow({
     required String label,
-    required IconData icon,
     required int value,
     required VoidCallback onIncrement,
     required VoidCallback onDecrement,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.blue[700], size: 24),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: Colors.black,
           ),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey[300]!),
-            ),
-            child: Row(
-              children: [
-                InkWell(
-                  onTap: onDecrement,
+        ),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              // Decrement button
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(8),
                     bottomLeft: Radius.circular(8),
                   ),
+                  onTap: onDecrement,
                   child: Container(
-                    padding: const EdgeInsets.all(8),
-                    child: Icon(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    child: const Icon(
                       Icons.remove,
-                      color: Colors.blue[700],
                       size: 20,
+                      color: Colors.black,
                     ),
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    value.toString(),
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+              ),
+              // Value display - Fixed width for 2 digits
+              Container(
+                width: 50,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                decoration: BoxDecoration(
+                  border: Border(
+                    left: BorderSide(color: Colors.grey[300]!),
+                    right: BorderSide(color: Colors.grey[300]!),
                   ),
                 ),
-                InkWell(
-                  onTap: onIncrement,
+                alignment: Alignment.center,
+                child: Text(
+                  value.toString(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                    height: 1.0,
+                  ),
+                ),
+              ),
+              // Increment button
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
                   borderRadius: const BorderRadius.only(
                     topRight: Radius.circular(8),
                     bottomRight: Radius.circular(8),
                   ),
+                  onTap: onIncrement,
                   child: Container(
-                    padding: const EdgeInsets.all(8),
-                    child: Icon(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    child: const Icon(
                       Icons.add,
-                      color: Colors.blue[700],
                       size: 20,
+                      color: Colors.black,
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -958,17 +986,6 @@ class _CreateWorkoutDialogState extends ConsumerState<CreateWorkoutDialog> {
         ),
       ),
     );
-  }
-
-  // Helper methods for category styling
-  Color _getCategoryColor(WorkoutCategory category) {
-    return switch (category) {
-      WorkoutCategory.STRENGTH => Colors.red[700]!,
-      WorkoutCategory.CARDIO => Colors.orange[700]!,
-      WorkoutCategory.FLEXIBILITY => Colors.purple[700]!,
-      WorkoutCategory.FUNCTIONAL => Colors.green[700]!,
-      WorkoutCategory.MIXED => Colors.blue[700]!,
-    };
   }
 
   String _getCategoryName(WorkoutCategory category) {

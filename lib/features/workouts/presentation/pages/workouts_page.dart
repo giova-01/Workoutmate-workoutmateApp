@@ -16,6 +16,7 @@ class WorkoutsPage extends ConsumerStatefulWidget {
 
 class _WorkoutsPageState extends ConsumerState<WorkoutsPage> {
   bool _hasLoadedWorkouts = false;
+  WorkoutCategory? _selectedCategory;
 
   @override
   void initState() {
@@ -51,12 +52,12 @@ class _WorkoutsPageState extends ConsumerState<WorkoutsPage> {
                   ref
                       .read(workoutNotifierProvider.notifier)
                       .createWorkout(
-                        userId: userId,
-                        name: name,
-                        category: category,
-                        exercises: exercisesList,
-                        isPublic: isPublic,
-                      );
+                    userId: userId,
+                    name: name,
+                    category: category,
+                    exercises: exercisesList,
+                    isPublic: isPublic,
+                  );
                 },
               );
             }
@@ -115,6 +116,11 @@ class _WorkoutsPageState extends ConsumerState<WorkoutsPage> {
         ),
         centerTitle: true,
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showCreateWorkoutDialog(context, userId),
+        backgroundColor: Colors.black87,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
@@ -129,10 +135,15 @@ class _WorkoutsPageState extends ConsumerState<WorkoutsPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Mis Rutinas',
-                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                  'Mis rutinas',
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                 ),
+                const SizedBox(height: 20),
+
+                // Category filter chips
+                _buildCategoryFilters(),
                 const SizedBox(height: 24),
+
                 _buildWorkoutContent(context, workoutState, userId),
               ],
             ),
@@ -142,11 +153,62 @@ class _WorkoutsPageState extends ConsumerState<WorkoutsPage> {
     );
   }
 
+  Widget _buildCategoryFilters() {
+    final categories = [
+      (null, 'Todas'),
+      (WorkoutCategory.STRENGTH, 'Fuerza'),
+      (WorkoutCategory.CARDIO, 'Cardio'),
+      (WorkoutCategory.FLEXIBILITY, 'Flexibilidad'),
+      (WorkoutCategory.FUNCTIONAL, 'Funcional'),
+      (WorkoutCategory.MIXED, 'Mixto'),
+    ];
+
+    return SizedBox(
+      height: 40,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: categories.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final (category, label) = categories[index];
+          final isSelected = _selectedCategory == category;
+
+          return FilterChip(
+            label: Text(label),
+            selected: isSelected,
+            onSelected: (selected) {
+              setState(() {
+                _selectedCategory = category;
+              });
+            },
+            backgroundColor: Colors.white,
+            selectedColor: Colors.grey[900],
+            checkmarkColor: Colors.white,
+            labelStyle: TextStyle(
+              color: isSelected ? Colors.white : Colors.grey[700],
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              fontSize: 14,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(
+                color: isSelected ? Colors.grey[900]! : Colors.grey[300]!,
+                width: 1.5,
+              ),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            showCheckmark: false,
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildWorkoutContent(
-    BuildContext context,
-    WorkoutState state,
-    String userId,
-  ) {
+      BuildContext context,
+      WorkoutState state,
+      String userId,
+      ) {
     // Loading state
     if (state is WorkoutLoading) {
       return const Center(
@@ -186,32 +248,45 @@ class _WorkoutsPageState extends ConsumerState<WorkoutsPage> {
       );
     }
 
+    // Filter workouts by category
+    List<Workout> filteredWorkouts = [];
+    if (state is WorkoutsLoaded) {
+      filteredWorkouts = _selectedCategory == null
+          ? state.workouts
+          : state.workouts
+          .where((w) => w.category == _selectedCategory)
+          .toList();
+    }
+
     // Empty state - centered full screen
-    if (state is WorkoutsLoaded && state.workouts.isEmpty) {
+    if (state is WorkoutsLoaded && filteredWorkouts.isEmpty) {
       final height = MediaQuery.of(context).size.height;
       return SizedBox(
-        height: height * 0.7,
+        height: height * 0.5,
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              GestureDetector(
-                onTap: () => _showCreateWorkoutDialog(context, userId),
-                child: Container(
-                  width: 150,
-                  height: 150,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.blue[50],
-                    border: Border.all(color: Colors.blue[200]!, width: 2),
-                  ),
-                  child: const Icon(Icons.add, size: 100, color: Colors.blue),
+              Icon(
+                Icons.fitness_center_outlined,
+                size: 80,
+                color: Colors.grey[300],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                _selectedCategory == null
+                    ? 'No tienes rutinas aún'
+                    : 'No hay rutinas en esta categoría',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 24),
-              const Text(
+              const SizedBox(height: 8),
+              Text(
                 'Crea tu primera rutina',
-                style: TextStyle(fontSize: 18, color: Colors.grey),
+                style: TextStyle(fontSize: 14, color: Colors.grey[500]),
               ),
             ],
           ),
@@ -219,62 +294,15 @@ class _WorkoutsPageState extends ConsumerState<WorkoutsPage> {
       );
     }
 
-    // Workouts grid
+    // Workouts list
     if (state is WorkoutsLoaded) {
-      return GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: state.workouts.length + 1,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 1,
-        ),
-        itemBuilder: (context, index) {
-          // First card is "New Workout"
-          if (index == 0) {
-            return GestureDetector(
-              onTap: () => _showCreateWorkoutDialog(context, userId),
-              child: Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.add_circle_outline,
-                        size: 60,
-                        color: Colors.blue,
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        'Nueva\nRutina',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          }
-
-          // Workout cards
-          final workout = state.workouts[index - 1];
-          return _WorkoutCard(workout: workout, userId: userId);
-        },
+      return Column(
+        children: filteredWorkouts
+            .map((workout) => Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: _WorkoutCard(workout: workout, userId: userId),
+        ))
+            .toList(),
       );
     }
 
@@ -292,76 +320,158 @@ class _WorkoutCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey[200]!, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         onTap: () {
           // TODO: Navigate to detail page
         },
-        child: Container(
-          padding: const EdgeInsets.all(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header with category and menu
+              // Title
+              Text(
+                workout.name,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Category and exercise count
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
+                  Text(
+                    _getCategoryName(workout.category),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
                     ),
-                    decoration: BoxDecoration(
-                      color: _getCategoryColor(workout.category),
-                      borderRadius: BorderRadius.circular(12),
+                  ),
+                  Text(
+                    ' - ',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[400],
                     ),
-                    child: Text(
-                      _getCategoryName(workout.category),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  ),
+                  Text(
+                    '${workout.exercises.length} Ejercicios',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
                     ),
                   ),
                   const Spacer(),
                   if (workout.isPublic)
-                    const Icon(Icons.public, size: 16, color: Colors.grey),
+                    Icon(
+                      Icons.public,
+                      size: 16,
+                      color: Colors.grey[500],
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Action buttons row
+              Row(
+                children: [
+                  // Start workout button (icon only)
+                  _buildIconButton(
+                    icon: Icons.play_circle_outline,
+                    onTap: () {
+                      // TODO: Start workout
+                    },
+                  ),
+                  const Spacer(),
+
+                  // QR code button
+                  _buildIconButton(
+                    icon: Icons.qr_code_2,
+                    onTap: () {
+                      ref
+                          .read(workoutNotifierProvider.notifier)
+                          .generateShareLink(
+                          workoutId: workout.id, userId: userId);
+                    },
+                  ),
+                  const SizedBox(width: 8),
+
+                  // Share button
+                  _buildIconButton(
+                    icon: Icons.share_outlined,
+                    onTap: () {
+                      ref
+                          .read(workoutNotifierProvider.notifier)
+                          .generateShareLink(
+                          workoutId: workout.id, userId: userId);
+                    },
+                  ),
+                  const SizedBox(width: 8),
+
+                  // More options menu (Edit/Delete)
                   PopupMenuButton(
+                    icon: Icon(
+                      Icons.more_vert,
+                      size: 22,
+                      color: Colors.grey[700],
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    offset: const Offset(0, 40),
                     onSelected: (value) =>
                         _handleMenuAction(value, context, ref),
                     itemBuilder: (_) => [
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'edit',
                         child: Row(
                           children: [
-                            Icon(Icons.edit),
-                            SizedBox(width: 8),
-                            Text('Editar'),
+                            Icon(Icons.edit_outlined,
+                              size: 20,
+                              color: Colors.grey[700],
+                            ),
+                            const SizedBox(width: 12),
+                            const Text(
+                              'Editar',
+                              style: TextStyle(fontSize: 15),
+                            ),
                           ],
                         ),
                       ),
-                      const PopupMenuItem(
-                        value: 'share',
-                        child: Row(
-                          children: [
-                            Icon(Icons.share),
-                            SizedBox(width: 8),
-                            Text('Compartir'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'delete',
                         child: Row(
                           children: [
-                            Icon(Icons.delete, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text(
+                            const Icon(
+                              Icons.delete_outline,
+                              size: 20,
+                              color: Colors.red,
+                            ),
+                            const SizedBox(width: 12),
+                            const Text(
                               'Eliminar',
-                              style: TextStyle(color: Colors.red),
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontSize: 15,
+                              ),
                             ),
                           ],
                         ),
@@ -370,44 +480,26 @@ class _WorkoutCard extends ConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-
-              // Workout title
-              Text(
-                workout.name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const Spacer(),
-
-              // Exercise count
-              Row(
-                children: [
-                  const Icon(
-                    Icons.fitness_center,
-                    size: 16,
-                    color: Colors.grey,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${workout.exercises.length} ejercicios',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-
-              // Last updated date
-              Text(
-                'Actualizada: ${_formatDate(workout.updatedAt)}',
-                style: const TextStyle(fontSize: 10, color: Colors.grey),
-              ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIconButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        child: Icon(
+          icon,
+          size: 22,
+          color: Colors.grey[700],
         ),
       ),
     );
@@ -418,13 +510,8 @@ class _WorkoutCard extends ConsumerWidget {
       case 'delete':
         _showDeleteConfirmation(context, ref);
         break;
-      case 'share':
-        ref
-            .read(workoutNotifierProvider.notifier)
-            .generateShareLink(workoutId: workout.id, userId: userId);
-        break;
       case 'edit':
-        // TODO: Implement edit functionality
+      // TODO: Implement edit functionality
         break;
     }
   }
@@ -511,9 +598,9 @@ class _WorkoutCard extends ConsumerWidget {
                           dialogRef
                               .read(workoutNotifierProvider.notifier)
                               .deleteWorkout(
-                                workoutId: workout.id,
-                                userId: userId,
-                              );
+                            workoutId: workout.id,
+                            userId: userId,
+                          );
                           Navigator.pop(dialogContext);
                         },
                         child: const Text(
@@ -532,36 +619,13 @@ class _WorkoutCard extends ConsumerWidget {
     );
   }
 
-  // Helper methods for category styling
-  Color _getCategoryColor(WorkoutCategory category) {
-    return switch (category) {
-      WorkoutCategory.STRENGTH => Colors.red[700]!,
-      WorkoutCategory.CARDIO => Colors.orange[700]!,
-      WorkoutCategory.FLEXIBILITY => Colors.purple[700]!,
-      WorkoutCategory.FUNCTIONAL => Colors.green[700]!,
-      WorkoutCategory.MIXED => Colors.blue[700]!,
-    };
-  }
-
   String _getCategoryName(WorkoutCategory category) {
     return switch (category) {
-      WorkoutCategory.STRENGTH => 'FUERZA',
-      WorkoutCategory.CARDIO => 'CARDIO',
-      WorkoutCategory.FLEXIBILITY => 'FLEXIBILIDAD',
-      WorkoutCategory.FUNCTIONAL => 'FUNCIONAL',
-      WorkoutCategory.MIXED => 'MIXTO',
+      WorkoutCategory.STRENGTH => 'Fuerza',
+      WorkoutCategory.CARDIO => 'Cardio',
+      WorkoutCategory.FLEXIBILITY => 'Flexibilidad',
+      WorkoutCategory.FUNCTIONAL => 'Funcional',
+      WorkoutCategory.MIXED => 'Mixto',
     };
-  }
-
-  // Helper method for date formatting
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final diff = now.difference(date);
-
-    if (diff.inDays == 0) return 'Hoy';
-    if (diff.inDays == 1) return 'Ayer';
-    if (diff.inDays < 7) return 'Hace ${diff.inDays} días';
-
-    return '${date.day}/${date.month}/${date.year}';
   }
 }
