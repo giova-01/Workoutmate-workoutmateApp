@@ -106,7 +106,6 @@ class WorkoutRemoteDataSourceImpl implements WorkoutRemoteDataSource {
       debugPrint('[DataSource] Response data: ${response.data}');
 
       if (response.statusCode == 200) {
-        // Verificar que workouts existe y es una lista
         if (response.data['workouts'] == null) {
           debugPrint('[DataSource] workouts es null, devolviendo lista vacía');
           return [];
@@ -131,7 +130,6 @@ class WorkoutRemoteDataSourceImpl implements WorkoutRemoteDataSource {
             final workoutJson = workoutsData[i];
             debugPrint('[DataSource] Procesando workout $i: $workoutJson');
 
-            // Si exercises viene como string JSON, parsearlo
             if (workoutJson['exercises'] is String) {
               try {
                 final exercisesStr = workoutJson['exercises'] as String;
@@ -153,7 +151,6 @@ class WorkoutRemoteDataSourceImpl implements WorkoutRemoteDataSource {
             debugPrint('[DataSource] Workout $i procesado exitosamente');
           } catch (e) {
             debugPrint('[DataSource] Error procesando workout $i: $e');
-            // Continuar con el siguiente workout
           }
         }
 
@@ -173,7 +170,6 @@ class WorkoutRemoteDataSourceImpl implements WorkoutRemoteDataSource {
           throw const ServerException('Usuario no encontrado');
         }
 
-        // 404 porque NO tiene rutinas
         return [];
       }
 
@@ -356,7 +352,7 @@ class WorkoutRemoteDataSourceImpl implements WorkoutRemoteDataSource {
       );
 
       if (response.statusCode == 200) {
-        // El backend devuelve: { success: true, exercises: [...] }
+        // Backend returns: { success: true, exercises: [...] }
         final exercises = (response.data['exercises'] as List)
             .map((exercise) => ExerciseModel.fromJson(exercise))
             .toList();

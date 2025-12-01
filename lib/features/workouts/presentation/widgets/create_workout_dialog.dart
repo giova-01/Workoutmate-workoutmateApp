@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/exercise.dart';
 import '../../domain/entities/workout.dart';
+import 'exercise_config_dialog.dart';
+import 'workout_name_dialog.dart';
 
 class CreateWorkoutDialog extends ConsumerStatefulWidget {
   final String userId;
@@ -26,8 +28,6 @@ class CreateWorkoutDialog extends ConsumerStatefulWidget {
 }
 
 class _CreateWorkoutDialogState extends ConsumerState<CreateWorkoutDialog> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
   final _searchController = TextEditingController();
 
   WorkoutCategory _selectedCategory = WorkoutCategory.STRENGTH;
@@ -38,7 +38,6 @@ class _CreateWorkoutDialogState extends ConsumerState<CreateWorkoutDialog> {
 
   @override
   void dispose() {
-    _nameController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -94,217 +93,27 @@ class _CreateWorkoutDialogState extends ConsumerState<CreateWorkoutDialog> {
     return _selectedExercises.any((e) => e.exercise.id == exercise.id);
   }
 
+  int _getExerciseOrderIndex(Exercise exercise) {
+    return _selectedExercises.indexWhere((e) => e.exercise.id == exercise.id) +
+        1;
+  }
+
   void _showWorkoutNameDialog() {
     showDialog(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          return Dialog(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Container(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.9,
-              ),
-              padding: const EdgeInsets.all(24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Title
-                    const Text(
-                      'Crear rutina',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Workout name input
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: InputDecoration(
-                        labelText: 'Nombre',
-                        labelStyle: TextStyle(color: Colors.grey[700]),
-                        hintText: 'Ej: Rutina de Fuerza',
-                        hintStyle: TextStyle(color: Colors.grey[400]),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Colors.black, width: 2),
-                        ),
-                        errorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Colors.red),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Ingresa un nombre';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Category dropdown
-                    DropdownButtonFormField<WorkoutCategory>(
-                      initialValue: _selectedCategory,
-                      decoration: InputDecoration(
-                        labelText: 'Categoría',
-                        labelStyle: TextStyle(color: Colors.grey[700]),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Colors.black, width: 2),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
-                      ),
-                      items: WorkoutCategory.values.map((category) {
-                        return DropdownMenuItem(
-                          value: category,
-                          child: Text(
-                            _getCategoryName(category),
-                            style: const TextStyle(fontSize: 15),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setDialogState(() => _selectedCategory = value);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Public workout switch
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Rutina pública',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Otros podrán ver esta rutina',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Switch(
-                          value: _isPublic,
-                          activeThumbColor: Colors.black,
-                          onChanged: (value) {
-                            setDialogState(() => _isPublic = value);
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Action buttons
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              side: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            onPressed: () => Navigator.pop(dialogContext),
-                            child: Text(
-                              'Cancelar',
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: Colors.grey[700],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.black,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              elevation: 0,
-                            ),
-                            onPressed: () {
-                              if (_formKey.currentState!.validate()) {
-                                Navigator.pop(dialogContext);
-                                _createWorkout();
-                              }
-                            },
-                            child: const Text(
-                              'Crear',
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
+      builder: (dialogContext) => WorkoutNameDialog(
+        initialCategory: _selectedCategory,
+        initialIsPublic: _isPublic,
+        onConfirm: (name, category, isPublic) {
+          _selectedCategory = category;
+          _isPublic = isPublic;
+          _createWorkout(name);
         },
       ),
     );
   }
 
-  void _createWorkout() {
+  void _createWorkout(String name) {
     if (_selectedExercises.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -334,7 +143,7 @@ class _CreateWorkoutDialogState extends ConsumerState<CreateWorkoutDialog> {
     }).toList();
 
     widget.onCreateWorkout(
-      _nameController.text.isNotEmpty ? _nameController.text : 'Nueva Rutina',
+      name.isNotEmpty ? name : 'Nueva Rutina',
       _selectedCategory,
       exercises,
       _isPublic,
@@ -344,271 +153,21 @@ class _CreateWorkoutDialogState extends ConsumerState<CreateWorkoutDialog> {
   }
 
   void _showExerciseConfigDialog(_ExerciseWithConfig exerciseConfig) {
-    final restController = TextEditingController(
-      text: exerciseConfig.restTime.toString(),
-    );
-
     showDialog(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          return Dialog(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Container(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.9,
-              ),
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title
-                  Text(
-                    exerciseConfig.exercise.name,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Configura las series y repeticiones',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Sets counter
-                  _buildMinimalCounterRow(
-                    label: 'Series',
-                    value: exerciseConfig.sets,
-                    onIncrement: () {
-                      setDialogState(() {
-                        if (exerciseConfig.sets < 20) exerciseConfig.sets++;
-                      });
-                    },
-                    onDecrement: () {
-                      setDialogState(() {
-                        if (exerciseConfig.sets > 1) exerciseConfig.sets--;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Repetitions counter
-                  _buildMinimalCounterRow(
-                    label: 'Repeticiones',
-                    value: exerciseConfig.repetitions,
-                    onIncrement: () {
-                      setDialogState(() {
-                        if (exerciseConfig.repetitions < 50) {
-                          exerciseConfig.repetitions++;
-                        }
-                      });
-                    },
-                    onDecrement: () {
-                      setDialogState(() {
-                        if (exerciseConfig.repetitions > 1) {
-                          exerciseConfig.repetitions--;
-                        }
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Rest time input
-                  TextField(
-                    controller: restController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: 'Descanso (segundos)',
-                      labelStyle: TextStyle(color: Colors.grey[700]),
-                      hintText: '60',
-                      hintStyle: TextStyle(color: Colors.grey[400]),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.black, width: 2),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Action buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            side: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          onPressed: () => Navigator.pop(dialogContext),
-                          child: Text(
-                            'Cancelar',
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: Colors.grey[700],
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            elevation: 0,
-                          ),
-                          onPressed: () {
-                            exerciseConfig.restTime =
-                                int.tryParse(restController.text) ?? 60;
-                            Navigator.pop(dialogContext);
-                            setState(() {});
-                          },
-                          child: const Text(
-                            'Guardar',
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          );
+      builder: (dialogContext) => ExerciseConfigDialog(
+        exercise: exerciseConfig.exercise,
+        sets: exerciseConfig.sets,
+        repetitions: exerciseConfig.repetitions,
+        restTime: exerciseConfig.restTime,
+        onSave: (sets, repetitions, restTime) {
+          setState(() {
+            exerciseConfig.sets = sets;
+            exerciseConfig.repetitions = repetitions;
+            exerciseConfig.restTime = restTime;
+          });
         },
       ),
-    );
-  }
-
-  Widget _buildMinimalCounterRow({
-    required String label,
-    required int value,
-    required VoidCallback onIncrement,
-    required VoidCallback onDecrement,
-  }) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: Colors.black,
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            children: [
-              // Decrement button
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(8),
-                    bottomLeft: Radius.circular(8),
-                  ),
-                  onTap: onDecrement,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
-                    ),
-                    child: const Icon(
-                      Icons.remove,
-                      size: 20,
-                      color: Colors.black,
-                    ),
-                  ),
-                ),
-              ),
-              // Value display - Fixed width for 2 digits
-              Container(
-                width: 50,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                decoration: BoxDecoration(
-                  border: Border(
-                    left: BorderSide(color: Colors.grey[300]!),
-                    right: BorderSide(color: Colors.grey[300]!),
-                  ),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  value.toString(),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                    height: 1.0,
-                  ),
-                ),
-              ),
-              // Increment button
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: const BorderRadius.only(
-                    topRight: Radius.circular(8),
-                    bottomRight: Radius.circular(8),
-                  ),
-                  onTap: onIncrement,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
-                    ),
-                    child: const Icon(
-                      Icons.add,
-                      size: 20,
-                      color: Colors.black,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 
@@ -708,6 +267,9 @@ class _CreateWorkoutDialogState extends ConsumerState<CreateWorkoutDialog> {
               itemBuilder: (context, index) {
                 final exercise = _filteredExercises[index];
                 final isSelected = _isExerciseSelected(exercise);
+                final orderIndex = isSelected
+                    ? _getExerciseOrderIndex(exercise)
+                    : null;
 
                 return GestureDetector(
                   onTap: () {
@@ -786,19 +348,24 @@ class _CreateWorkoutDialogState extends ConsumerState<CreateWorkoutDialog> {
                           ),
                         ),
 
-                        // Check indicator
-                        if (isSelected)
+                        // Order number indicator
+                        if (isSelected && orderIndex != null)
                           Container(
-                            width: 24,
-                            height: 24,
-                            decoration: const BoxDecoration(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
                               color: Colors.green,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(
-                              Icons.check,
-                              color: Colors.white,
-                              size: 16,
+                            child: Center(
+                              child: Text(
+                                orderIndex.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           ),
                       ],
@@ -853,6 +420,27 @@ class _CreateWorkoutDialogState extends ConsumerState<CreateWorkoutDialog> {
                           children: [
                             Row(
                               children: [
+                                // Order number badge
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green,
+                                    borderRadius:
+                                    BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    '${index + 1}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
                                 Expanded(
                                   child: Text(
                                     config.exercise.name,
@@ -986,16 +574,6 @@ class _CreateWorkoutDialogState extends ConsumerState<CreateWorkoutDialog> {
         ),
       ),
     );
-  }
-
-  String _getCategoryName(WorkoutCategory category) {
-    return switch (category) {
-      WorkoutCategory.STRENGTH => 'Fuerza',
-      WorkoutCategory.CARDIO => 'Cardio',
-      WorkoutCategory.FLEXIBILITY => 'Flexibilidad',
-      WorkoutCategory.FUNCTIONAL => 'Funcional',
-      WorkoutCategory.MIXED => 'Mixto',
-    };
   }
 }
 

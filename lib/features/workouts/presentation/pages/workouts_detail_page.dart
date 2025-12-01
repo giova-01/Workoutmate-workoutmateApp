@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async';
 import '../../domain/entities/workout.dart';
+import '../widgets/exercise_details_dialog.dart';
+import '../widgets/workout_completed_dialog.dart';
 
 class WorkoutDetailPage extends ConsumerStatefulWidget {
   final Workout workout;
@@ -35,7 +37,7 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
 
     final currentExercise = widget.workout.exercises[_currentExerciseIndex];
     setState(() {
-      _timerSeconds = currentExercise.restTime ?? 60; // Default 60 segundos si no hay restTime
+      _timerSeconds = currentExercise.restTime ?? 60;
       _isTimerRunning = true;
     });
 
@@ -156,90 +158,108 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
 
           // Exercise list
           ...widget.workout.exercises.asMap().entries.map((entry) {
-            final index = entry.key;
             final exercise = entry.value;
 
-            return Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey[200]!),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    // Exercise image placeholder
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[900],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.fitness_center,
-                        color: Colors.white,
-                        size: 40,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-
-                    // Exercise info
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            exercise.name,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+            return Stack(
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey[200]!),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[900],
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          const SizedBox(height: 8),
-                          Row(
+                          child: const Icon(
+                            Icons.fitness_center,
+                            color: Colors.white,
+                            size: 40,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Series: ',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                              Text(
-                                '${exercise.sets}',
+                                exercise.name,
                                 style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
                                 ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(width: 16),
-                              Text(
-                                'Reps: ',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                              Text(
-                                '${exercise.repetitions}',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Text(
+                                    'Series: ',
+                                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                                  ),
+                                  Text(
+                                    '${exercise.sets}',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Text(
+                                    'Reps: ',
+                                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                                  ),
+                                  Text(
+                                    '${exercise.repetitions}',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                        ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // "?" ICON
+                Positioned(
+                  bottom: 26,
+                  right: 10,
+                    child: GestureDetector(
+                      onTap: () {
+                        ExerciseDetailsDialog.show(context, exercise);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.help_outline,
+                          size: 20,
+                          color: Colors.black87,
+                        ),
                       ),
                     ),
-                  ],
                 ),
-              ),
+              ],
             );
           }),
 
@@ -342,7 +362,7 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -361,8 +381,7 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: (_isTimerRunning ? Colors.orange : Colors.green)
-                              .withOpacity(0.3),
+                          color: (_isTimerRunning ? Colors.orange : Colors.green).withValues(alpha: 0.3),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -423,10 +442,10 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
           padding: const EdgeInsets.all(24),
           child: Column(
             children: [
-              // Botones de navegación (Anterior y Siguiente)
+              // Navigation button (previous/before)
               Row(
                 children: [
-                  // Botón anterior
+                  // Previous button
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: (_currentSet > 1 || _currentExerciseIndex > 0)
@@ -461,7 +480,7 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
                   ),
                   const SizedBox(width: 12),
 
-                  // Botón siguiente
+                  // Next series/exercise button
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: _nextExercise,
@@ -483,7 +502,7 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
 
               const SizedBox(height: 12),
 
-              // Botón terminar (abajo)
+              // Stop button
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
@@ -547,13 +566,13 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
 
   void _previousExercise() {
     if (_currentSet > 1) {
-      // Ir a la serie anterior en el mismo ejercicio
+      // Prevouse series in the same exercise
       setState(() {
         _currentSet--;
         _resetTimer();
       });
     } else if (_currentExerciseIndex > 0) {
-      // Ir al ejercicio anterior (última serie)
+      // Previous exercise (last series)
       setState(() {
         _currentExerciseIndex--;
         _currentSet = widget.workout.exercises[_currentExerciseIndex].sets!;
@@ -585,44 +604,10 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
   }
 
   void _showCompletedDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        title: const Text(
-          '¡Rutina Completada!',
-          textAlign: TextAlign.center,
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.check_circle_outline,
-              size: 64,
-              color: Colors.green,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Tiempo de descanso total: ${_formatTime(_elapsedSeconds)}',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              context.pop();
-            },
-            child: const Text('Cerrar'),
-          ),
-        ],
-      ),
+    WorkoutCompletedDialog.show(
+      context,
+      widget.workout,
+      _elapsedSeconds,
     );
   }
 
