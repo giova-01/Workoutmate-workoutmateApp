@@ -7,6 +7,8 @@ import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/home/presentation/pages/home_shell_page.dart';
 import '../../features/home/presentation/pages/dashboard_page.dart';
+import '../../features/workouts/domain/entities/workout.dart';
+import '../../features/workouts/presentation/pages/workouts_detail_page.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -47,6 +49,15 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/workouts',
                 builder: (context, state) => const WorkoutsPage(),
+                routes: [
+                  GoRoute(
+                    path: 'detail',
+                    builder: (context, state) {
+                      final workout = state.extra as Workout;
+                      return WorkoutDetailPage(workout: workout);
+                    },
+                  ),
+                ],
               ),
             ],
           ),
