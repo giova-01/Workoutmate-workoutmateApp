@@ -509,7 +509,7 @@ class _WorkoutCard extends ConsumerWidget {
         _showDeleteConfirmation(context, ref);
         break;
       case 'edit':
-        onEdit();
+        Future.microtask(() => onEdit());
         break;
     }
   }
