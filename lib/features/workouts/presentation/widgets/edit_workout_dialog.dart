@@ -2,6 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/exercise.dart';
 import '../../domain/entities/workout.dart';
+import 'exercise_config_dialog.dart';
+import 'edit_workout_name_dialog.dart';
+
+// Default exercise configuration values
+class _Constants {
+  static const int defaultSets = 3;
+  static const int defaultRepetitions = 10;
+  static const int defaultRestTime = 60;
+}
 
 class EditWorkoutDialog extends ConsumerStatefulWidget {
   final String userId;
@@ -28,8 +37,6 @@ class EditWorkoutDialog extends ConsumerStatefulWidget {
 }
 
 class _EditWorkoutDialogState extends ConsumerState<EditWorkoutDialog> {
-  final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _nameController;
   final _searchController = TextEditingController();
 
   late WorkoutCategory _selectedCategory;
@@ -41,56 +48,81 @@ class _EditWorkoutDialogState extends ConsumerState<EditWorkoutDialog> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.workout.name);
+    _initializeWorkoutData();
+  }
+
+  void _initializeWorkoutData() {
     _selectedCategory = widget.workout.category;
     _isPublic = widget.workout.isPublic;
+    _selectedExercises = _loadExistingExercises();
+  }
 
-    // Cargar ejercicios existentes
-    _selectedExercises = widget.workout.exercises.map((exercise) {
+  List<_ExerciseWithConfig> _loadExistingExercises() {
+    return widget.workout.exercises.map((workoutExercise) {
+      // Find complete exercise in availableExercises by name
+      final availableExercise = widget.availableExercises.firstWhere(
+            (e) => e.name.toLowerCase() == workoutExercise.name.toLowerCase(),
+        orElse: () => workoutExercise,
+      );
+
       return _ExerciseWithConfig(
-        exercise: exercise,
-        sets: exercise.sets ?? 3,
-        repetitions: exercise.repetitions ?? 10,
-        restTime: exercise.restTime ?? 60,
+        exercise: availableExercise,
+        sets: workoutExercise.sets ?? _Constants.defaultSets,
+        repetitions: workoutExercise.repetitions ?? _Constants.defaultRepetitions,
+        restTime: workoutExercise.restTime ?? _Constants.defaultRestTime,
       );
     }).toList();
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
     _searchController.dispose();
     super.dispose();
   }
 
+  // Computed properties
   List<Exercise> get _filteredExercises {
     var exercises = widget.availableExercises;
 
     if (_searchQuery.isNotEmpty) {
-      exercises = exercises.where((exercise) {
-        return exercise.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            (exercise.muscleGroup?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
-      }).toList();
+      exercises = _filterBySearchQuery(exercises);
     }
 
     if (_selectedFilter != null) {
-      exercises = exercises.where((exercise) {
-        return exercise.category?.toLowerCase() == _selectedFilter?.toLowerCase() ||
-            exercise.muscleGroup?.toLowerCase() == _selectedFilter?.toLowerCase();
-      }).toList();
+      exercises = _filterByCategory(exercises);
     }
 
     return exercises;
   }
 
+  bool get _hasSelectedExercises => _selectedExercises.isNotEmpty;
+
+  // Filtering logic
+  List<Exercise> _filterBySearchQuery(List<Exercise> exercises) {
+    return exercises.where((exercise) {
+      final query = _searchQuery.toLowerCase();
+      return exercise.name.toLowerCase().contains(query) ||
+          (exercise.muscleGroup?.toLowerCase().contains(query) ?? false);
+    }).toList();
+  }
+
+  List<Exercise> _filterByCategory(List<Exercise> exercises) {
+    return exercises.where((exercise) {
+      final filter = _selectedFilter?.toLowerCase();
+      return exercise.category?.toLowerCase() == filter ||
+          exercise.muscleGroup?.toLowerCase() == filter;
+    }).toList();
+  }
+
+  // Exercise selection logic
   void _addExercise(Exercise exercise) {
     setState(() {
       _selectedExercises.add(
         _ExerciseWithConfig(
           exercise: exercise,
-          sets: 3,
-          repetitions: 10,
-          restTime: 60,
+          sets: _Constants.defaultSets,
+          repetitions: _Constants.defaultRepetitions,
+          restTime: _Constants.defaultRestTime,
         ),
       );
     });
@@ -106,658 +138,544 @@ class _EditWorkoutDialogState extends ConsumerState<EditWorkoutDialog> {
     return _selectedExercises.any((e) => e.exercise.id == exercise.id);
   }
 
-  void _showUpdateConfirmationDialog() {
+  int _getExerciseOrderIndex(Exercise exercise) {
+    return _selectedExercises.indexWhere((e) => e.exercise.id == exercise.id) + 1;
+  }
+
+  void _toggleExerciseSelection(Exercise exercise) {
+    if (_isExerciseSelected(exercise)) {
+      final config = _selectedExercises.firstWhere(
+            (e) => e.exercise.id == exercise.id,
+      );
+      _removeExercise(config);
+    } else {
+      _addExercise(exercise);
+    }
+  }
+
+  // Dialog navigation
+  void _showEditWorkoutNameDialog() {
     showDialog(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          return Dialog(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Container(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.9,
-              ),
-              padding: const EdgeInsets.all(24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Editar rutina',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Nombre
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: InputDecoration(
-                        labelText: 'Nombre',
-                        labelStyle: TextStyle(color: Colors.grey[700]),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Colors.black, width: 2),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Ingresa un nombre';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Categoría
-                    DropdownButtonFormField<WorkoutCategory>(
-                      initialValue: _selectedCategory,
-                      decoration: InputDecoration(
-                        labelText: 'Categoría',
-                        labelStyle: TextStyle(color: Colors.grey[700]),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Colors.black, width: 2),
-                        ),
-                      ),
-                      items: WorkoutCategory.values.map((category) {
-                        return DropdownMenuItem(
-                          value: category,
-                          child: Text(_getCategoryName(category)),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setDialogState(() => _selectedCategory = value);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Public switch
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Rutina pública',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              Text(
-                                'Otros podrán ver esta rutina',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Switch(
-                          value: _isPublic,
-                          activeThumbColor: Colors.black,
-                          onChanged: (value) {
-                            setDialogState(() => _isPublic = value);
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Buttons
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(dialogContext),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: const Text('Cancelar'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              if (_formKey.currentState!.validate()) {
-                                Navigator.pop(dialogContext);
-                                _updateWorkout();
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.black,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: const Text(
-                              'Guardar',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
+      builder: (dialogContext) => EditWorkoutNameDialog(
+        initialName: widget.workout.name,
+        initialCategory: _selectedCategory,
+        initialIsPublic: _isPublic,
+        onConfirm: (name, category, isPublic) {
+          _selectedCategory = category;
+          _isPublic = isPublic;
+          _updateWorkout(name);
         },
       ),
     );
   }
 
-  void _updateWorkout() {
-    if (_selectedExercises.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Debes tener al menos un ejercicio'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
+  void _showExerciseConfigDialog(_ExerciseWithConfig exerciseConfig) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => ExerciseConfigDialog(
+        exercise: exerciseConfig.exercise,
+        sets: exerciseConfig.sets,
+        repetitions: exerciseConfig.repetitions,
+        restTime: exerciseConfig.restTime,
+        onSave: (sets, repetitions, restTime) {
+          setState(() {
+            exerciseConfig.sets = sets;
+            exerciseConfig.repetitions = repetitions;
+            exerciseConfig.restTime = restTime;
+          });
+        },
+      ),
+    );
+  }
 
-    final exercises = _selectedExercises.asMap().entries.map((entry) {
-      return {
-        'name': entry.value.exercise.name,
-        'category': entry.value.exercise.category,
-        'muscle_group': entry.value.exercise.muscleGroup,
-        'description': entry.value.exercise.description,
-        'difficulty': entry.value.exercise.difficulty,
-        'equipment': entry.value.exercise.equipment,
-        'sets': entry.value.sets,
-        'repetitions': entry.value.repetitions,
-        'rest_time': entry.value.restTime,
-      };
-    }).toList();
+  // Workout update logic
+  void _updateWorkout(String name) {
+    if (!_validateWorkout()) return;
+
+    final exercises = _buildExercisesList();
 
     widget.onUpdateWorkout(
       widget.workout.id,
-      _nameController.text.isNotEmpty ? _nameController.text : null,
+      name.isNotEmpty ? name : null,
       _selectedCategory,
       exercises,
       _isPublic,
     );
-
-    Navigator.pop(context);
   }
 
-  void _showExerciseConfigDialog(_ExerciseWithConfig exerciseConfig) {
-    final restController = TextEditingController(
-      text: exerciseConfig.restTime.toString(),
+  bool _validateWorkout() {
+    if (_selectedExercises.isEmpty) {
+      _showErrorSnackBar('Debes agregar al menos un ejercicio');
+      return false;
+    }
+    return true;
+  }
+
+  List<Map<String, dynamic>> _buildExercisesList() {
+    return _selectedExercises.map((exerciseConfig) {
+      return {
+        'name': exerciseConfig.exercise.name,
+        'category': exerciseConfig.exercise.category,
+        'muscle_group': exerciseConfig.exercise.muscleGroup,
+        'description': exerciseConfig.exercise.description,
+        'difficulty': exerciseConfig.exercise.difficulty,
+        'equipment': exerciseConfig.exercise.equipment,
+        'sets': exerciseConfig.sets,
+        'repetitions': exerciseConfig.repetitions,
+        'rest_time': exerciseConfig.restTime,
+      };
+    }).toList();
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red[600],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
     );
+  }
 
-    showDialog(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          return Dialog(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Container(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.9,
-              ),
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    exerciseConfig.exercise.name,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
+  // UI Build methods
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: _buildAppBar(),
+      body: _buildBody(),
+      bottomNavigationBar: _buildBottomBar(),
+    );
+  }
 
-                  _buildCounterRow(
-                    label: 'Series',
-                    value: exerciseConfig.sets,
-                    onIncrement: () {
-                      setDialogState(() {
-                        if (exerciseConfig.sets < 20) exerciseConfig.sets++;
-                      });
-                    },
-                    onDecrement: () {
-                      setDialogState(() {
-                        if (exerciseConfig.sets > 1) exerciseConfig.sets--;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      elevation: 0,
+      backgroundColor: Colors.white,
+      leading: IconButton(
+        icon: const Icon(Icons.close, color: Colors.black),
+        onPressed: () => Navigator.pop(context),
+      ),
+      title: const Text(
+        'Editar Ejercicios',
+        style: TextStyle(
+          color: Colors.black,
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      centerTitle: true,
+      actions: [
+        IconButton(
+          icon: Icon(
+            Icons.check,
+            color: _hasSelectedExercises ? Colors.green : Colors.grey,
+          ),
+          onPressed: _hasSelectedExercises ? _showEditWorkoutNameDialog : null,
+        ),
+      ],
+    );
+  }
 
-                  _buildCounterRow(
-                    label: 'Repeticiones',
-                    value: exerciseConfig.repetitions,
-                    onIncrement: () {
-                      setDialogState(() {
-                        if (exerciseConfig.repetitions < 50) {
-                          exerciseConfig.repetitions++;
-                        }
-                      });
-                    },
-                    onDecrement: () {
-                      setDialogState(() {
-                        if (exerciseConfig.repetitions > 1) {
-                          exerciseConfig.repetitions--;
-                        }
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
+  Widget _buildBody() {
+    return Column(
+      children: [
+        _buildSearchBar(),
+        _buildCategoryFilters(),
+        const SizedBox(height: 16),
+        _buildExerciseList(),
+      ],
+    );
+  }
 
-                  TextField(
-                    controller: restController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: 'Descanso (segundos)',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(dialogContext),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                          ),
-                          child: const Text('Cancelar'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            exerciseConfig.restTime =
-                                int.tryParse(restController.text) ?? 60;
-                            Navigator.pop(dialogContext);
-                            setState(() {});
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                          ),
-                          child: const Text(
-                            'Guardar',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          );
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: 'Buscar',
+          hintStyle: TextStyle(color: Colors.grey[400]),
+          prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
+          filled: true,
+          fillColor: Colors.grey[100],
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
+        ),
+        onChanged: (value) {
+          setState(() {
+            _searchQuery = value;
+          });
         },
       ),
     );
   }
 
-  Widget _buildCounterRow({
-    required String label,
-    required int value,
-    required VoidCallback onIncrement,
-    required VoidCallback onDecrement,
-  }) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(8),
+  Widget _buildCategoryFilters() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          const SizedBox(width: 8),
+          _buildFilterChip('Brazos', Icons.fitness_center),
+          const SizedBox(width: 8),
+          _buildFilterChip('Piernas', Icons.directions_run),
+          const SizedBox(width: 8),
+          _buildFilterChip('Pecho', Icons.accessibility_new),
+          const SizedBox(width: 8),
+          _buildFilterChip('Espalda', Icons.accessibility),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, IconData icon) {
+    final isSelected = _selectedFilter == label;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedFilter = isSelected ? null : label;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.black : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? Colors.black : Colors.grey[300]!,
           ),
-          child: Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.remove),
-                onPressed: onDecrement,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isSelected ? Colors.white : Colors.black,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.black,
+                fontWeight: FontWeight.w500,
               ),
-              Container(
-                width: 50,
-                alignment: Alignment.center,
-                child: Text(
-                  value.toString(),
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.add),
-                onPressed: onIncrement,
-              ),
-            ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExerciseList() {
+    return Expanded(
+      child: _filteredExercises.isEmpty
+          ? _buildEmptyState()
+          : ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: _filteredExercises.length,
+        itemBuilder: (context, index) {
+          return _buildExerciseListItem(_filteredExercises[index]);
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Text(
+        'No se encontraron ejercicios',
+        style: TextStyle(color: Colors.grey[600]),
+      ),
+    );
+  }
+
+  Widget _buildExerciseListItem(Exercise exercise) {
+    final isSelected = _isExerciseSelected(exercise);
+    final orderIndex = isSelected ? _getExerciseOrderIndex(exercise) : null;
+
+    return GestureDetector(
+      onTap: () => _toggleExerciseSelection(exercise),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: _buildExerciseItemDecoration(isSelected),
+        child: Row(
+          children: [
+            _buildExerciseIcon(),
+            const SizedBox(width: 12),
+            _buildExerciseInfo(exercise),
+            if (isSelected && orderIndex != null)
+              _buildOrderBadge(orderIndex),
+          ],
+        ),
+      ),
+    );
+  }
+
+  BoxDecoration _buildExerciseItemDecoration(bool isSelected) {
+    return BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(
+        color: isSelected ? Colors.green : Colors.transparent,
+        width: 2,
+      ),
+      boxShadow: [
+        if (!isSelected)
+          BoxShadow(
+            color: Colors.grey[200]!,
+            blurRadius: 1,
+          ),
+      ],
+    );
+  }
+
+  Widget _buildExerciseIcon() {
+    return Container(
+      width: 60,
+      height: 60,
+      decoration: BoxDecoration(
+        color: Colors.grey[900],
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Icon(
+        Icons.fitness_center,
+        color: Colors.white,
+        size: 30,
+      ),
+    );
+  }
+
+  Widget _buildExerciseInfo(Exercise exercise) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            exercise.name,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            exercise.muscleGroup ?? exercise.category ?? 'General',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderBadge(int orderIndex) {
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: const BoxDecoration(
+        color: Colors.green,
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Text(
+          orderIndex.toString(),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget? _buildBottomBar() {
+    if (!_hasSelectedExercises) return null;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildSelectedExercisesList(),
+            const SizedBox(height: 12),
+            _buildBottomActions(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSelectedExercisesList() {
+    return SizedBox(
+      height: 80,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: _selectedExercises.length,
+        itemBuilder: (context, index) {
+          return _buildSelectedExerciseCard(_selectedExercises[index]);
+        },
+      ),
+    );
+  }
+
+  Widget _buildSelectedExerciseCard(_ExerciseWithConfig config) {
+    return GestureDetector(
+      onTap: () => _showExerciseConfigDialog(config),
+      child: Container(
+        width: 200,
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.grey[100],
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey[300]!),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSelectedExerciseHeader(config),
+            const SizedBox(height: 4),
+            _buildSelectedExerciseDetails(config),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSelectedExerciseHeader(_ExerciseWithConfig config) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            config.exercise.name,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        GestureDetector(
+          onTap: () => _removeExercise(config),
+          child: const Icon(
+            Icons.close,
+            size: 16,
           ),
         ),
       ],
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Editar Ejercicios',
+  Widget _buildSelectedExerciseDetails(_ExerciseWithConfig config) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '${config.sets} series × ${config.repetitions} reps',
           style: TextStyle(
-            color: Colors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
+            fontSize: 11,
+            color: Colors.grey[600],
           ),
         ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: Icon(
-              Icons.check,
-              color: _selectedExercises.isEmpty ? Colors.grey : Colors.green,
-            ),
-            onPressed: _selectedExercises.isEmpty
-                ? null
-                : _showUpdateConfirmationDialog,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Search bar
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Buscar',
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: Colors.grey[100],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
-            ),
-          ),
-
-          // Exercise list
-          Expanded(
-            child: _filteredExercises.isEmpty
-                ? const Center(child: Text('No se encontraron ejercicios'))
-                : ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _filteredExercises.length,
-              itemBuilder: (context, index) {
-                final exercise = _filteredExercises[index];
-                final isSelected = _isExerciseSelected(exercise);
-
-                return GestureDetector(
-                  onTap: () {
-                    if (isSelected) {
-                      final config = _selectedExercises.firstWhere(
-                            (e) => e.exercise.id == exercise.id,
-                      );
-                      _removeExercise(config);
-                    } else {
-                      _addExercise(exercise);
-                    }
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isSelected ? Colors.green : Colors.grey[300]!,
-                        width: 2,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[900],
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(
-                            Icons.fitness_center,
-                            color: Colors.white,
-                            size: 30,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                exercise.name,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Text(
-                                exercise.muscleGroup ?? exercise.category ?? 'General',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (isSelected)
-                          const Icon(
-                            Icons.check_circle,
-                            color: Colors.green,
-                          ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-
-      // Bottom bar
-      bottomNavigationBar: _selectedExercises.isNotEmpty
-          ? Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                height: 80,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _selectedExercises.length,
-                  itemBuilder: (context, index) {
-                    final config = _selectedExercises[index];
-                    return GestureDetector(
-                      onTap: () => _showExerciseConfigDialog(config),
-                      child: Container(
-                        width: 200,
-                        margin: const EdgeInsets.only(right: 8),
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey[300]!),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    config.exercise.name,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 12,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                GestureDetector(
-                                  onTap: () => _removeExercise(config),
-                                  child: const Icon(Icons.close, size: 16),
-                                ),
-                              ],
-                            ),
-                            Text(
-                              '${config.sets} series × ${config.repetitions} reps',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '${_selectedExercises.length} seleccionados',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  ElevatedButton(
-                    onPressed: _showUpdateConfirmationDialog,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Guardar cambios',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+        Text(
+          'Descanso: ${config.restTime}s',
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey[600],
           ),
         ),
-      )
-          : null,
+      ],
     );
   }
 
-  String _getCategoryName(WorkoutCategory category) {
-    return switch (category) {
-      WorkoutCategory.STRENGTH => 'Fuerza',
-      WorkoutCategory.CARDIO => 'Cardio',
-      WorkoutCategory.FLEXIBILITY => 'Flexibilidad',
-      WorkoutCategory.FUNCTIONAL => 'Funcional',
-      WorkoutCategory.MIXED => 'Mixto',
-    };
+  Widget _buildBottomActions() {
+    return Row(
+      children: [
+        _buildSelectionCounter(),
+        const Spacer(),
+        _buildContinueButton(),
+      ],
+    );
+  }
+
+  Widget _buildSelectionCounter() {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 6,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        '${_selectedExercises.length} seleccionados',
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContinueButton() {
+    return ElevatedButton(
+      onPressed: _showEditWorkoutNameDialog,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.green,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(
+          horizontal: 32,
+          vertical: 12,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      child: const Text(
+        'Continuar',
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
   }
 }
 
+/// Internal model class to hold exercise configuration
 class _ExerciseWithConfig {
   final Exercise exercise;
   int sets;

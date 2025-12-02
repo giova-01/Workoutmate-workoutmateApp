@@ -88,7 +88,7 @@ class _WorkoutsPageState extends ConsumerState<WorkoutsPage> {
 
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return Consumer(
           builder: (context, ref, child) {
             final workoutState = ref.watch(workoutNotifierProvider);
@@ -99,14 +99,18 @@ class _WorkoutsPageState extends ConsumerState<WorkoutsPage> {
                 workout: workout,
                 availableExercises: workoutState.exercises,
                 onUpdateWorkout: (workoutId, name, category, exercises, isPublic) {
-                  ref.read(workoutNotifierProvider.notifier).updateWorkout(
-                    workoutId: workoutId,
-                    userId: userId,
-                    name: name,
-                    category: category,
-                    exercises: exercises,
-                    isPublic: isPublic,
-                  );
+                  Navigator.of(dialogContext).pop();
+
+                  Future.microtask(() {
+                    ref.read(workoutNotifierProvider.notifier).updateWorkout(
+                      workoutId: workoutId,
+                      userId: userId,
+                      name: name,
+                      category: category,
+                      exercises: exercises,
+                      isPublic: isPublic,
+                    );
+                  });
                 },
               );
             }
