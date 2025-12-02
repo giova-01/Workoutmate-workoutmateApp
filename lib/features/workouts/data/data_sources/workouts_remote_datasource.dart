@@ -180,7 +180,7 @@ class WorkoutRemoteDataSourceImpl implements WorkoutRemoteDataSource {
     }
   }
 
-
+  @override
   @override
   Future<WorkoutModel> updateWorkout({
     required String workoutId,
@@ -191,15 +191,15 @@ class WorkoutRemoteDataSourceImpl implements WorkoutRemoteDataSource {
     bool? isPublic,
   }) async {
     try {
-      final data = {
+      final data = <String, dynamic>{
         'id': workoutId,
         'user_id': userId,
       };
 
       if (name != null) data['name'] = name;
       if (category != null) data['category'] = category;
-      if (exercises != null) data['exercises'] = exercises as String;
-      if (isPublic != null) data['is_public'] = isPublic as String;
+      if (exercises != null) data['exercises'] = exercises;
+      if (isPublic != null) data['is_public'] = isPublic;
 
       final response = await dio.put(
         '${ApiConstants.baseUrl}/workouts/update',
@@ -333,7 +333,6 @@ class WorkoutRemoteDataSourceImpl implements WorkoutRemoteDataSource {
     }
   }
 
-  ///Exercises
   @override
   Future<List<ExerciseModel>> getPredefinedExercises({
     String? muscleGroup,
@@ -352,7 +351,6 @@ class WorkoutRemoteDataSourceImpl implements WorkoutRemoteDataSource {
       );
 
       if (response.statusCode == 200) {
-        // Backend returns: { success: true, exercises: [...] }
         final exercises = (response.data['exercises'] as List)
             .map((exercise) => ExerciseModel.fromJson(exercise))
             .toList();
