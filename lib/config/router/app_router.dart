@@ -54,7 +54,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                     path: 'detail',
                     builder: (context, state) {
                       final workout = state.extra as Workout;
-                      return WorkoutDetailPage(workout: workout);
+                      return WorkoutDetailPage(workoutId: workout.id);
                     },
                   ),
                 ],

@@ -456,7 +456,16 @@ class _WorkoutCard extends ConsumerWidget {
                     icon: Icon(Icons.more_vert, size: 22, color: Colors.grey[700]),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     offset: const Offset(0, 40),
-                    onSelected: (value) => _handleMenuAction(value, context, ref),
+                    onSelected: (value) async {
+                      if (value == 'edit') {
+                        await Future.delayed(const Duration(milliseconds: 300));
+                        if (context.mounted) {
+                          onEdit();
+                        }
+                      } else if (value == 'delete') {
+                        _showDeleteConfirmation(context, ref);
+                      }
+                    },
                     itemBuilder: (_) => [
                       PopupMenuItem(
                         value: 'edit',
@@ -501,17 +510,6 @@ class _WorkoutCard extends ConsumerWidget {
         child: Icon(icon, size: 22, color: Colors.grey[700]),
       ),
     );
-  }
-
-  void _handleMenuAction(String value, BuildContext context, WidgetRef ref) {
-    switch (value) {
-      case 'delete':
-        _showDeleteConfirmation(context, ref);
-        break;
-      case 'edit':
-        Future.microtask(() => onEdit());
-        break;
-    }
   }
 
   void _showDeleteConfirmation(BuildContext context, WidgetRef ref) {

@@ -1,3 +1,5 @@
+// lib/features/workouts/presentation/pages/workouts_detail_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,11 +7,15 @@ import 'dart:async';
 import '../../domain/entities/workout.dart';
 import '../widgets/exercise_details_dialog.dart';
 import '../widgets/workout_completed_dialog.dart';
+import '../widgets/edit_workout_dialog.dart';
+import '../../../../config/providers/app_providers.dart';
+import '../../../auth/presentation/auth_state.dart';
+import 'workouts_state.dart';
 
 class WorkoutDetailPage extends ConsumerStatefulWidget {
-  final Workout workout;
+  final String workoutId;
 
-  const WorkoutDetailPage({super.key, required this.workout});
+  const WorkoutDetailPage({super.key, required this.workoutId});
 
   @override
   ConsumerState<WorkoutDetailPage> createState() => _WorkoutDetailPageState();
@@ -21,7 +27,6 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
   int _elapsedSeconds = 0;
   int _currentSet = 1;
 
-  // Timer variables
   Timer? _timer;
   bool _isTimerRunning = false;
   int _timerSeconds = 0;
@@ -32,10 +37,10 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
     super.dispose();
   }
 
-  void _startTimer() {
+  void _startTimer(Workout workout) {
     if (_isTimerRunning) return;
 
-    final currentExercise = widget.workout.exercises[_currentExerciseIndex];
+    final currentExercise = workout.exercises[_currentExerciseIndex];
     setState(() {
       _timerSeconds = currentExercise.restTime ?? 60;
       _isTimerRunning = true;
@@ -60,19 +65,97 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
     });
   }
 
-  void _resetTimer() {
+  void _resetTimer(Workout workout) {
     _timer?.cancel();
-    final currentExercise = widget.workout.exercises[_currentExerciseIndex];
+    final currentExercise = workout.exercises[_currentExerciseIndex];
     setState(() {
       _timerSeconds = currentExercise.restTime ?? 60;
       _isTimerRunning = false;
     });
   }
 
+  void _showEditWorkoutDialog(BuildContext context, String userId, Workout workout) {
+    ref.read(workoutNotifierProvider.notifier).loadPredefinedExercises();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return Consumer(
+          builder: (context, ref, child) {
+            final workoutState = ref.watch(workoutNotifierProvider);
+
+            if (workoutState is PredefinedExercisesLoaded) {
+              return EditWorkoutDialog(
+                userId: userId,
+                workout: workout,
+                availableExercises: workoutState.exercises,
+                onUpdateWorkout: (workoutId, name, category, exercises, isPublic) {
+                  Navigator.of(dialogContext).pop();
+
+                  Future.microtask(() {
+                    ref.read(workoutNotifierProvider.notifier).updateWorkout(
+                      workoutId: workoutId,
+                      userId: userId,
+                      name: name,
+                      category: category,
+                      exercises: exercises,
+                      isPublic: isPublic,
+                    );
+                  });
+                },
+              );
+            }
+
+            return const Dialog(
+              child: Padding(
+                padding: EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Cargando ejercicios...'),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    ).then((_) {
+      ref.read(workoutNotifierProvider.notifier).restorePreviousWorkoutsState();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final currentExercise = _isRunning && widget.workout.exercises.isNotEmpty
-        ? widget.workout.exercises[_currentExerciseIndex]
+    final authState = ref.watch(authNotifierProvider);
+    final workoutState = ref.watch(workoutNotifierProvider);
+
+    String userId = '';
+    if (authState is AuthAuthenticated) {
+      userId = authState.user.id;
+    }
+
+    Workout? workout;
+    if (workoutState is WorkoutsLoaded) {
+      try {
+        workout = workoutState.workouts.firstWhere(
+              (w) => w.id == widget.workoutId,
+        );
+      } catch (e) {
+        workout = null;
+      }
+    }
+
+    if (workout == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final currentExercise = _isRunning && workout.exercises.isNotEmpty
+        ? workout.exercises[_currentExerciseIndex]
         : null;
 
     return Scaffold(
@@ -85,7 +168,7 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          widget.workout.name,
+          workout.name,
           style: const TextStyle(
             color: Colors.black,
             fontSize: 18,
@@ -109,28 +192,29 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
           IconButton(
             icon: const Icon(Icons.edit_outlined, color: Colors.black),
             onPressed: () {
-              // TODO: Editar
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _showEditWorkoutDialog(context, userId, workout!);
+              });
             },
           ),
         ],
       ),
       body: SafeArea(
-        child: _isRunning ? _buildRunningView(currentExercise!) : _buildPreviewView(),
+        child: _isRunning ? _buildRunningView(currentExercise!, workout) : _buildPreviewView(workout),
       ),
     );
   }
 
-  Widget _buildPreviewView() {
+  Widget _buildPreviewView(Workout workout) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header info
           Row(
             children: [
               Text(
-                _getCategoryName(widget.workout.category),
+                _getCategoryName(workout.category),
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey[600],
@@ -145,7 +229,7 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
                 ),
               ),
               Text(
-                '${widget.workout.exercises.length} Ejercicios',
+                '${workout.exercises.length} Ejercicios',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey[600],
@@ -156,8 +240,7 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
 
           const SizedBox(height: 32),
 
-          // Exercise list
-          ...widget.workout.exercises.asMap().entries.map((entry) {
+          ...workout.exercises.asMap().entries.map((entry) {
             final exercise = entry.value;
 
             return Stack(
@@ -237,27 +320,26 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
                   ),
                 ),
 
-                // "?" ICON
                 Positioned(
                   bottom: 26,
                   right: 10,
-                    child: GestureDetector(
-                      onTap: () {
-                        ExerciseDetailsDialog.show(context, exercise);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.help_outline,
-                          size: 20,
-                          color: Colors.black87,
-                        ),
+                  child: GestureDetector(
+                    onTap: () {
+                      ExerciseDetailsDialog.show(context, exercise);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.help_outline,
+                        size: 20,
+                        color: Colors.black87,
                       ),
                     ),
+                  ),
                 ),
               ],
             );
@@ -265,7 +347,6 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
 
           const SizedBox(height: 32),
 
-          // Start button
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -275,7 +356,7 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
                   _elapsedSeconds = 0;
                   _currentExerciseIndex = 0;
                   _currentSet = 1;
-                  _resetTimer();
+                  _resetTimer(workout);
                 });
               },
               style: ElevatedButton.styleFrom(
@@ -301,9 +382,9 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
     );
   }
 
-  Widget _buildRunningView(exercise) {
+  Widget _buildRunningView(exercise, Workout workout) {
     final isLastSet = _currentSet >= exercise.sets!;
-    final isLastExercise = _currentExerciseIndex >= widget.workout.exercises.length - 1;
+    final isLastExercise = _currentExerciseIndex >= workout.exercises.length - 1;
 
     String nextButtonLabel;
     if (isLastSet && !isLastExercise) {
@@ -316,7 +397,6 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
 
     return Column(
       children: [
-        // Timer and controls
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
@@ -328,8 +408,6 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
           ),
           child: Column(
             children: [
-              // Timer display
-
               const SizedBox(height: 8),
               Text(
                 'Tiempo de descanso',
@@ -352,7 +430,6 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
                       : Colors.black,
                 ),
               ),
-              // Play/Pause/Reset buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -370,7 +447,7 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
                     ),
                     child: IconButton(
                       icon: const Icon(Icons.refresh, size: 28),
-                      onPressed: _resetTimer,
+                      onPressed: () => _resetTimer(workout),
                       tooltip: 'Reiniciar',
                     ),
                   ),
@@ -393,7 +470,7 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
                         size: 36,
                         color: Colors.white,
                       ),
-                      onPressed: _isTimerRunning ? _pauseTimer : _startTimer,
+                      onPressed: _isTimerRunning ? _pauseTimer : () => _startTimer(workout),
                       tooltip: _isTimerRunning ? 'Pausar' : 'Iniciar',
                     ),
                   ),
@@ -405,7 +482,6 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
 
         const SizedBox(height: 32),
 
-        // Current exercise info
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
@@ -423,7 +499,6 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
               ),
               const SizedBox(height: 24),
 
-              // Series info
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
@@ -437,19 +512,16 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
 
         const Spacer(),
 
-        // Bottom navigation
         Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             children: [
-              // Navigation button (previous/before)
               Row(
                 children: [
-                  // Previous button
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: (_currentSet > 1 || _currentExerciseIndex > 0)
-                          ? _previousExercise
+                          ? () => _previousExercise(workout)
                           : null,
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -480,10 +552,9 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
                   ),
                   const SizedBox(width: 12),
 
-                  // Next series/exercise button
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: _nextExercise,
+                      onPressed: () => _nextExercise(workout),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.black,
                         foregroundColor: Colors.white,
@@ -502,7 +573,6 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
 
               const SizedBox(height: 12),
 
-              // Stop button
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
@@ -564,49 +634,46 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
     );
   }
 
-  void _previousExercise() {
+  void _previousExercise(Workout workout) {
     if (_currentSet > 1) {
-      // Prevouse series in the same exercise
       setState(() {
         _currentSet--;
-        _resetTimer();
+        _resetTimer(workout);
       });
     } else if (_currentExerciseIndex > 0) {
-      // Previous exercise (last series)
       setState(() {
         _currentExerciseIndex--;
-        _currentSet = widget.workout.exercises[_currentExerciseIndex].sets!;
-        _resetTimer();
+        _currentSet = workout.exercises[_currentExerciseIndex].sets!;
+        _resetTimer(workout);
       });
     }
   }
 
-  void _nextExercise() {
-    if (_currentSet < widget.workout.exercises[_currentExerciseIndex].sets!) {
+  void _nextExercise(Workout workout) {
+    if (_currentSet < workout.exercises[_currentExerciseIndex].sets!) {
       setState(() {
         _currentSet++;
-        _resetTimer();
+        _resetTimer(workout);
       });
-    } else if (_currentExerciseIndex < widget.workout.exercises.length - 1) {
+    } else if (_currentExerciseIndex < workout.exercises.length - 1) {
       setState(() {
         _currentExerciseIndex++;
         _currentSet = 1;
-        _resetTimer();
+        _resetTimer(workout);
       });
     } else {
-      // Workout completed
       setState(() {
         _isRunning = false;
         _timer?.cancel();
       });
-      _showCompletedDialog();
+      _showCompletedDialog(workout);
     }
   }
 
-  void _showCompletedDialog() {
+  void _showCompletedDialog(Workout workout) {
     WorkoutCompletedDialog.show(
       context,
-      widget.workout,
+      workout,
       _elapsedSeconds,
     );
   }
