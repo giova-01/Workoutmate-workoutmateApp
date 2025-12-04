@@ -22,6 +22,7 @@ import '../../features/workouts/domain/usecases/get_user_workouts_usecase.dart';
 import '../../features/workouts/domain/usecases/search_workout_usecase.dart';
 import '../../features/workouts/domain/usecases/update_workout_usecase.dart';
 import '../../features/workouts/presentation/pages/workouts_state.dart';
+import '../../features/workouts/presentation/qr_scanner_notifier.dart';
 import '../../features/workouts/presentation/workouts_notifier.dart';
 
 // Secure Storage
@@ -139,4 +140,10 @@ final workoutNotifierProvider = StateNotifierProvider<WorkoutNotifier, WorkoutSt
     generateShareLinkUseCase: ref.watch(generateShareLinkUseCaseProvider),
     getPredefinedExercisesUseCase: ref.watch(getPredefinedExercisesUseCaseProvider),
   );
+});
+
+// Qr Scanner Notifier Provider
+final qrScannerProvider = StateNotifierProvider<QrScannerNotifier, QrScannerState>((ref) {
+  final dio = ref.watch(dioClientProvider).dio;
+  return QrScannerNotifier(dio);
 });

@@ -8,6 +8,7 @@ import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/home/presentation/pages/home_shell_page.dart';
 import '../../features/home/presentation/pages/dashboard_page.dart';
 import '../../features/workouts/domain/entities/workout.dart';
+import '../../features/workouts/presentation/pages/scan_page.dart';
 import '../../features/workouts/presentation/pages/workouts_detail_page.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -77,7 +78,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/scan',
-                builder: (context, state) => const Placeholder(),
+                builder: (context, state) => const ScanPage(),
               ),
             ],
           ),

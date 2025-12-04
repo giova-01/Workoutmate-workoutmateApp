@@ -6,6 +6,7 @@ import '../../../../config/providers/app_providers.dart';
 import '../../../auth/presentation/auth_state.dart';
 import '../widgets/create_workout_dialog.dart';
 import '../widgets/edit_workout_dialog.dart';
+import '../widgets/qr_share_dialog.dart';
 import 'workouts_state.dart';
 import '../../domain/entities/workout.dart';
 
@@ -140,6 +141,22 @@ class _WorkoutsPageState extends ConsumerState<WorkoutsPage> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
     final workoutState = ref.watch(workoutNotifierProvider);
+
+    ref.listen<WorkoutState>(workoutNotifierProvider, (previous, next) {
+      if (next is WorkoutShareLinkGenerated) {
+        showDialog(
+          context: context,
+          builder: (context) => QrShareDialog(
+            shareLink: next.shareLink,
+            workoutName: 'Rutina',
+          ),
+        ).then((_) {
+          if (authState is AuthAuthenticated) {
+            ref.read(workoutNotifierProvider.notifier).loadUserWorkouts(authState.user.id);
+          }
+        });
+      }
+    });
 
     if (authState is! AuthAuthenticated) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -433,16 +450,6 @@ class _WorkoutCard extends ConsumerWidget {
                   const Spacer(),
                   _buildIconButton(
                     icon: Icons.qr_code_2,
-                    onTap: () {
-                      ref.read(workoutNotifierProvider.notifier).generateShareLink(
-                        workoutId: workout.id,
-                        userId: userId,
-                      );
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  _buildIconButton(
-                    icon: Icons.share_outlined,
                     onTap: () {
                       ref.read(workoutNotifierProvider.notifier).generateShareLink(
                         workoutId: workout.id,

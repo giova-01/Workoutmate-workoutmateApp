@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'dart:async';
 import '../../domain/entities/workout.dart';
 import '../widgets/exercise_details_dialog.dart';
+import '../widgets/qr_share_dialog.dart';
 import '../widgets/workout_completed_dialog.dart';
 import '../widgets/edit_workout_dialog.dart';
 import '../../../../config/providers/app_providers.dart';
@@ -158,6 +159,19 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
         ? workout.exercises[_currentExerciseIndex]
         : null;
 
+    // Listener para QR Share
+    ref.listen<WorkoutState>(workoutNotifierProvider, (previous, next) {
+      if (next is WorkoutShareLinkGenerated) {
+        showDialog(
+          context: context,
+          builder: (context) => QrShareDialog(
+            shareLink: next.shareLink,
+            workoutName: workout?.name ?? 'Rutina',
+          ),
+        );
+      }
+    });
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -180,13 +194,12 @@ class _WorkoutDetailPageState extends ConsumerState<WorkoutDetailPage> {
           IconButton(
             icon: const Icon(Icons.qr_code_2, color: Colors.black),
             onPressed: () {
-              // TODO: Mostrar QR
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.share_outlined, color: Colors.black),
-            onPressed: () {
-              // TODO: Compartir
+              if (workout != null) {
+                ref.read(workoutNotifierProvider.notifier).generateShareLink(
+                  workoutId: workout.id,
+                  userId: userId,
+                );
+              }
             },
           ),
           IconButton(

@@ -62,7 +62,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String email,
     required String password,
     required String firstName,
-    required String lastName,
   }) async {
     state = const AuthLoading();
 
@@ -70,7 +69,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
       email: email,
       password: password,
       firstName: firstName,
-      lastName: lastName,
     );
 
     result.fold(
